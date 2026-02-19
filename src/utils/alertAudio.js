@@ -1,7 +1,9 @@
 /**
- * Client-side alert audio using Web Audio API and SpeechSynthesis.
- * Works in browsers on PC and mobile (Chrome, Safari, Firefox, Edge).
+ * Client-side alert audio using Web Audio API and Capacitor TextToSpeech.
+ * Uses @capacitor-community/text-to-speech for native TTS (Android/iOS) with proper permissions.
  */
+
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 // #region agent log
 function _log(location, message, data, hypothesisId) {
@@ -59,50 +61,27 @@ export function playBeeps(count = 3, frequency = 880, durationMs = 150) {
   }
 }
 
-// Known female voice names by platform (partial match, case-insensitive)
-const FEMALE_VOICE_PATTERNS = [
-  'female', 'zira', 'aria', 'samantha', 'victoria', 'karen', 'moira',
-  'susan', 'linda', 'emily', 'amy',
-];
-
-function getFemaleVoice() {
-  const voices = window.speechSynthesis.getVoices();
-  if (!voices.length) return null;
-  const female = voices.find((v) =>
-    FEMALE_VOICE_PATTERNS.some((p) => v.name.toLowerCase().includes(p))
-  );
-  return female || voices.find((v) => v.lang.startsWith('en')) || voices[0];
-}
-
 /**
- * Speak message using Web Speech API (built-in browser TTS)
- * Uses a female voice when available.
+ * Speak message using Capacitor TextToSpeech plugin.
+ * Handles native permissions correctly on Android/iOS.
  */
-export function speakAlert(message) {
+export async function speakAlert(message) {
   try {
     // #region agent log
-    _log('alertAudio.js:speakAlert:entry', 'speakAlert called', {
-      hasSpeechSynthesis: !!window.speechSynthesis,
-      voicesCount: window.speechSynthesis?.getVoices?.()?.length ?? 0,
-      msgLen: message?.length,
-    }, 'C');
+    _log('alertAudio.js:speakAlert:entry', 'speakAlert called', { msgLen: message?.length }, 'C');
     // #endregion
-    if (!window.speechSynthesis) return;
+    if (!message?.trim()) return;
 
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(message);
-    utterance.rate = 1;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-    utterance.lang = 'en-GB';
-
-    const femaleVoice = getFemaleVoice();
-    if (femaleVoice) utterance.voice = femaleVoice;
-
-    window.speechSynthesis.speak(utterance);
+    await TextToSpeech.speak({
+      text: message,
+      lang: 'en-GB',
+      rate: 1.0,
+      pitch: 1.0,
+      volume: 1.0,
+      category: 'ambient',
+    });
     // #region agent log
-    _log('alertAudio.js:speakAlert:speak', 'speak() called', { pending: window.speechSynthesis.pending, speaking: window.speechSynthesis.speaking }, 'C');
+    _log('alertAudio.js:speakAlert:speak', 'TextToSpeech.speak() called', {}, 'C');
     // #endregion
   } catch (e) {
     // #region agent log
