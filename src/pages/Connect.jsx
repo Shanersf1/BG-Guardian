@@ -205,8 +205,8 @@ function DexcomSetup() {
                         onCheckedChange={(checked) => setDexcomData({ ...dexcomData, dexcom_ous: checked })}
                     />
                 </div>
-                <p className="text-xs text-amber-600">
-                    Requires Python with pydexcom: <code className="bg-amber-50 px-1">pip install pydexcom</code>
+                <p className="text-xs text-gray-500">
+                    Uses Dexcom Share API (pure Node.js; no Python required).
                 </p>
                 <div className="flex gap-2">
                     <Button

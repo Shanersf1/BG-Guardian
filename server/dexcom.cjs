@@ -1,79 +1,65 @@
-const { spawn } = require('child_process');
-const path = require('path');
-const fs = require('fs');
 const storage = require('./storage.cjs');
 
-const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
-const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
-const SCRIPT_DIR = path.join(__dirname, '..', 'scripts');
-const DEXCOM_SCRIPT = path.join(SCRIPT_DIR, 'dexcom_fetch.py');
+/** Map dexcom-share-api trend strings to our internal format (same as CareLink). */
+const TREND_MAP = {
+    doubleup: 'UP_DOUBLE',
+    singleup: 'UP',
+    fortyfiveup: 'UP',
+    flat: 'FLAT',
+    fortyfivedown: 'DOWN',
+    singledown: 'DOWN',
+    doubledown: 'DOWN_DOUBLE',
+    notcomputable: 'FLAT',
+};
 
 /**
- * Fetch glucose from Dexcom Share API via pydexcom (Python).
+ * Fetch glucose from Dexcom Share API via dexcom-share-api (pure Node.js).
  * Returns normalized reading in same format as CareLink.
  */
 async function fetchDexcom() {
-    if (!fs.existsSync(DEXCOM_SCRIPT)) {
-        throw new Error('Dexcom fetch script not found. Install Python and run: pip install -r scripts/requirements-alerts.txt');
-    }
-
     const config = storage.getConfig();
     if (!config.dexcom_username || !config.dexcom_password) {
         throw new Error('Dexcom credentials not configured. Set up Dexcom in Connect settings.');
     }
 
-    const pyCmd = process.platform === 'win32' ? 'py' : 'python3';
-    return new Promise((resolve, reject) => {
-        const env = { ...process.env, DEXCOM_CONFIG: CONFIG_FILE };
-        const proc = spawn(pyCmd, [DEXCOM_SCRIPT], {
-            env,
-            cwd: path.join(__dirname, '..'),
-        });
+    const server = config.dexcom_ous !== false ? 'eu' : 'us';
+    const { DexcomClient } = require('dexcom-share-api');
 
-        let stdout = '';
-        let stderr = '';
-
-        proc.stdout.on('data', (d) => { stdout += d.toString(); });
-        proc.stderr.on('data', (d) => { stderr += d.toString(); });
-
-        proc.on('close', (code) => {
-            if (code !== 0) {
-                try {
-                    const errObj = JSON.parse(stderr || stdout);
-                    return reject(new Error(errObj.error || stderr || 'Dexcom fetch failed'));
-                } catch {
-                    return reject(new Error(stderr || stdout || 'Dexcom fetch failed'));
-                }
-            }
-
-            try {
-                const data = JSON.parse(stdout);
-                const reading = {
-                    glucose_value: data.glucose_value,
-                    timestamp: data.timestamp,
-                    trend: data.trend || 'FLAT',
-                };
-                storage.addReading(reading);
-                resolve({
-                    success: true,
-                    reading,
-                    glucose: data.glucose_value,
-                    trend: reading.trend,
-                    method: 'dexcom-share',
-                });
-            } catch (e) {
-                reject(new Error('Failed to parse Dexcom response'));
-            }
-        });
-
-        proc.on('error', (err) => {
-            if (err.code === 'ENOENT') {
-                reject(new Error('Python not found. Install Python and run: pip install pydexcom'));
-            } else {
-                reject(err);
-            }
-        });
+    const client = new DexcomClient({
+        username: config.dexcom_username.trim(),
+        password: config.dexcom_password,
+        server,
     });
+
+    const entries = await client.getEstimatedGlucoseValues({ minutes: 1440, maxCount: 1 });
+    if (!entries || entries.length === 0) {
+        throw new Error('No glucose reading available from Dexcom');
+    }
+
+    const entry = entries[0];
+    const trendKey = (entry.trend || 'flat').toLowerCase();
+    const trend = TREND_MAP[trendKey] || 'FLAT';
+
+    const ts = entry.timestamp;
+    const timestamp = typeof ts === 'number'
+        ? new Date(ts).toISOString()
+        : (ts || new Date().toISOString());
+
+    const reading = {
+        glucose_value: entry.mgdl,
+        timestamp,
+        trend,
+    };
+
+    storage.addReading(reading);
+
+    return {
+        success: true,
+        reading,
+        glucose: reading.glucose_value,
+        trend: reading.trend,
+        method: 'dexcom-share',
+    };
 }
 
 module.exports = { fetchDexcom };
