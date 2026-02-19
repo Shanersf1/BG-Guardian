@@ -4,6 +4,7 @@
  */
 
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
+import { Capacitor } from '@capacitor/core';
 
 // #region agent log
 function _log(location, message, data, hypothesisId) {
@@ -67,9 +68,9 @@ export function playBeeps(count = 3, frequency = 880, durationMs = 150) {
  */
 export async function speakAlert(message) {
   try {
-    // #region agent log
-    _log('alertAudio.js:speakAlert:entry', 'speakAlert called', { msgLen: message?.length }, 'C');
-    // #endregion
+    const platform = Capacitor.getPlatform();
+    console.log('[AlertAudio] speakAlert: using @capacitor-community/text-to-speech, platform=', platform);
+    _log('alertAudio.js:speakAlert:entry', 'speakAlert called', { msgLen: message?.length, platform }, 'C');
     if (!message?.trim()) return;
 
     await TextToSpeech.speak({
@@ -80,8 +81,8 @@ export async function speakAlert(message) {
       volume: 1.0,
       category: 'ambient',
     });
-    // #region agent log
-    _log('alertAudio.js:speakAlert:speak', 'TextToSpeech.speak() called', {}, 'C');
+    console.log('[AlertAudio] TextToSpeech.speak() completed');
+    _log('alertAudio.js:speakAlert:speak', 'TextToSpeech.speak() completed', { platform }, 'C');
     // #endregion
   } catch (e) {
     // #region agent log
