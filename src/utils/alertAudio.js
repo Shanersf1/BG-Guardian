@@ -4,7 +4,26 @@
  */
 
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
+import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
+
+const ALERT_CHANNEL_ID = 'AlertChannel';
+const ALERT_IDS = { low: 1, high: 2, rapid_rise: 3, rapid_fall: 4, stale: 5 };
+let localNotificationReady = false;
+
+async function ensureLocalNotificationReady() {
+  if (localNotificationReady || Capacitor.getPlatform() === 'web') return;
+  try {
+    const { display } = await LocalNotifications.checkPermissions();
+    if (display !== 'granted') {
+      const { display: after } = await LocalNotifications.requestPermissions();
+      if (after !== 'granted') return;
+    }
+    localNotificationReady = true;
+  } catch (e) {
+    console.warn('[AlertAudio] Local notification setup failed:', e);
+  }
+}
 
 // #region agent log
 function _log(location, message, data, hypothesisId) {
@@ -105,8 +124,45 @@ const MESSAGES = {
     `Hey ${name}, there has been no new glucose reading. Please check your sensor.`,
 };
 
+const NOTIFICATION_TITLES = {
+  low: 'Critical BG Alert!',
+  high: 'High BG Alert',
+  rapid_rise: 'Rapid Rise',
+  rapid_fall: 'Rapid Fall',
+  stale: 'Stale Data',
+};
+
 /**
- * Play full alert: beeps followed by voice message
+ * Schedule a high-priority local notification with channelId for native (Android/iOS).
+ */
+async function scheduleLocalNotification(alertType, body) {
+  if (Capacitor.getPlatform() === 'web') return;
+  try {
+    await ensureLocalNotificationReady();
+    const id = ALERT_IDS[alertType] ?? 0;
+    const title = NOTIFICATION_TITLES[alertType] || 'BG Alert';
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          title,
+          body,
+          id,
+          schedule: { at: new Date(Date.now() + 1000) },
+          sound: null,
+          attachments: null,
+          actionTypeId: '',
+          extra: null,
+          channelId: ALERT_CHANNEL_ID,
+        },
+      ],
+    });
+  } catch (e) {
+    console.warn('[AlertAudio] Local notification failed:', e);
+  }
+}
+
+/**
+ * Play full alert: beeps, voice message, and local notification (on native).
  */
 export function playAlert(alertType, userName = 'User', value = null) {
   // #region agent log
@@ -116,6 +172,8 @@ export function playAlert(alertType, userName = 'User', value = null) {
   const msg = MESSAGES[alertType]
     ? MESSAGES[alertType](name, value)
     : `Hey ${name}, glucose alert. Please check your glucose.`;
+
+  scheduleLocalNotification(alertType, msg);
 
   playBeeps(3);
   // Small delay so beeps finish before voice
