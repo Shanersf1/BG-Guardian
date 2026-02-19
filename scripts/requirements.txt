@@ -1,0 +1,2 @@
+# Optional: only needed if the monitor API fails and page-scrape fallback is used
+playwright>=1.40.0

@@ -1,0 +1,5 @@
+# Requirements for Dexcom and Audio Alerts
+# Install with: pip install -r scripts/requirements-alerts.txt
+pydexcom>=0.2.0
+pygame>=2.5.0
+pyttsx3>=2.90
