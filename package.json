@@ -62,7 +62,7 @@
     "express": "^4.21.0",
     "framer-motion": "^11.16.4",
     "input-otp": "^1.4.2",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "lucide-react": "^0.475.0",
     "minimed-connect-to-nightscout": "^1.5.5",
     "qs": "^6.15.0",
