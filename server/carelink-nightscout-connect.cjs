@@ -12,7 +12,6 @@
 const qs = require('qs');
 const axios = require('axios');
 const tough = require('tough-cookie');
-const axiosCookieJarSupport = require('axios-cookiejar-support');
 const storage = require('./storage.cjs');
 
 const BROWSER_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
@@ -82,7 +81,8 @@ async function fetchCareLinkNightscoutConnect() {
     const baseURL = `https://${host}`;
 
     const jar = new tough.CookieJar();
-    const addJarSupport = axiosCookieJarSupport.wrapper || axiosCookieJarSupport.default?.wrapper;
+    const { default: axiosCookieJarSupport } = await import('axios-cookiejar-support');
+    const addJarSupport = axiosCookieJarSupport?.wrapper ?? axiosCookieJarSupport?.default?.wrapper;
     if (!addJarSupport) throw new Error('axios-cookiejar-support: wrapper not found.');
     const http = addJarSupport(axios.create({
         baseURL,
