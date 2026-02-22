@@ -1,66 +1,52 @@
 package com.bgguardianlink.app;
 
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
+import android.os.SystemClock;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
-import java.util.Timer;
-import java.util.TimerTask;
-
 public class BackgroundService extends Service {
 
     public static final String CHANNEL_ID = "BackgroundServiceChannel";
-    private Timer timer;
-    private final Handler handler = new Handler(Looper.getMainLooper());
-
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        timer = new Timer();
-    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         createNotificationChannel();
         Notification notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("BG Guardian is running")
-                .setContentText("Monitoring your glucose levels in the background.")
-                .setSmallIcon(R.mipmap.ic_launcher) // Make sure you have this icon
+                .setContentText("Monitoring your glucose levels.")
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .build();
 
         startForeground(1, notification);
 
-        // Schedule a task to run every 5 minutes
-        timer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                handler.post(() -> {
-                    // Get the MainActivity instance to access the WebView
-                    MainActivity activity = MainActivity.getMainActivityInstance();
-                    if (activity != null) {
-                        activity.getBridge().getWebView().evaluateJavascript("window.dispatchEvent(new Event('fetch-bg-data'))", null);
-                    }
-                });
-            }
-        }, 0, 5 * 60 * 1000); // 5 minutes
+        // Schedule the very first alarm to kick off the cycle.
+        scheduleNextAlarm(this);
 
         return START_STICKY;
     }
 
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        if (timer != null) {
-            timer.cancel();
+    public static void scheduleNextAlarm(Context context) {
+        AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+        Intent intent = new Intent(context, AlarmReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+        long interval = 5 * 60 * 1000; // 5 minutes
+        long triggerAtMillis = SystemClock.elapsedRealtime() + interval;
+
+        if (alarmManager != null) {
+            // Use setExactAndAllowWhileIdle to wake the device even from Doze mode
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAtMillis, pendingIntent);
         }
     }
 
@@ -74,8 +60,8 @@ public class BackgroundService extends Service {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel serviceChannel = new NotificationChannel(
                     CHANNEL_ID,
-                    "Background Service Channel",
-                    NotificationManager.IMPORTANCE_DEFAULT
+                    "Background Service Status",
+                    NotificationManager.IMPORTANCE_LOW // Low importance for the persistent notification
             );
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(serviceChannel);

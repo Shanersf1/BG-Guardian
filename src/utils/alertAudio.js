@@ -6,10 +6,14 @@
 import { TextToSpeech } from '@capacitor-community/text-to-speech';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
+import { registerPlugin } from '@capacitor/core';
 
 const ALERT_CHANNEL_ID = 'AlertChannel';
 const ALERT_IDS = { low: 1, high: 2, rapid_rise: 3, rapid_fall: 4, stale: 5 };
 let localNotificationReady = false;
+
+// Android-only: urgent notifications with full-screen intent to wake sleeping phone
+const UrgentNotification = registerPlugin('UrgentNotification');
 
 async function ensureLocalNotificationReady() {
   if (localNotificationReady || Capacitor.getPlatform() === 'web') return;
@@ -133,14 +137,56 @@ const NOTIFICATION_TITLES = {
 };
 
 /**
- * Schedule a high-priority local notification with channelId for native (Android/iOS).
+ * Triggers the full urgent alert: full-screen notification + voice.
+ * Used when a critical glucose alert fires. On Android, wakes the phone and shows on lock screen.
+ * @param {object} alert - { title, body, id }
+ */
+export async function triggerFullUrgentAlert(alert) {
+  if (Capacitor.getPlatform() === 'web') return;
+  try {
+    if (Capacitor.getPlatform() === 'android' && UrgentNotification) {
+      await UrgentNotification.show({
+        title: alert.title,
+        body: alert.body,
+        id: alert.id,
+      });
+    }
+    if (alert.body?.trim()) {
+      await TextToSpeech.speak({
+        text: alert.body,
+        lang: 'en-US',
+        rate: 1.0,
+        pitch: 1.0,
+        volume: 1.0,
+        category: 'ambient',
+      });
+    }
+    console.log('[AlertAudio] Full urgent alert triggered.');
+  } catch (e) {
+    console.error('[AlertAudio] Full urgent alert failed:', e);
+  }
+}
+
+/**
+ * Show urgent notification. On Android: full-screen intent to wake phone and show on lock screen.
+ * On iOS: fallback to LocalNotifications.
  */
 async function scheduleLocalNotification(alertType, body) {
   if (Capacitor.getPlatform() === 'web') return;
+  const id = ALERT_IDS[alertType] ?? 0;
+  const title = NOTIFICATION_TITLES[alertType] || 'BG Alert';
+
+  if (Capacitor.getPlatform() === 'android') {
+    try {
+      await UrgentNotification.show({ title, body, id });
+    } catch (e) {
+      console.warn('[AlertAudio] Urgent notification failed:', e);
+    }
+    return;
+  }
+
   try {
     await ensureLocalNotificationReady();
-    const id = ALERT_IDS[alertType] ?? 0;
-    const title = NOTIFICATION_TITLES[alertType] || 'BG Alert';
     await LocalNotifications.schedule({
       notifications: [
         {
@@ -163,8 +209,10 @@ async function scheduleLocalNotification(alertType, body) {
 
 /**
  * Play full alert: beeps, voice message, and local notification (on native).
+ * On Android: uses UrgentNotification (full-screen) + TextToSpeech.
+ * On iOS: uses LocalNotifications + TextToSpeech.
  */
-export function playAlert(alertType, userName = 'User', value = null) {
+export async function playAlert(alertType, userName = 'User', value = null) {
   // #region agent log
   _log('alertAudio.js:playAlert:entry', 'playAlert called', { alertType, userName, value, isCapacitor: !!window.Capacitor }, 'A');
   // #endregion
@@ -172,10 +220,18 @@ export function playAlert(alertType, userName = 'User', value = null) {
   const msg = MESSAGES[alertType]
     ? MESSAGES[alertType](name, value)
     : `Hey ${name}, glucose alert. Please check your glucose.`;
+  const title = NOTIFICATION_TITLES[alertType] || 'BG Alert';
+  const id = ALERT_IDS[alertType] ?? 0;
 
-  scheduleLocalNotification(alertType, msg);
+  if (Capacitor.getPlatform() === 'android') {
+    await triggerFullUrgentAlert({ title, body: msg, id });
+    playBeeps(3);
+    return;
+  }
 
+  if (Capacitor.getPlatform() === 'ios') {
+    await scheduleLocalNotification(alertType, msg);
+  }
   playBeeps(3);
-  // Small delay so beeps finish before voice
   setTimeout(() => speakAlert(msg), 900);
 }

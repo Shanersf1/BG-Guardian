@@ -1,14 +1,21 @@
 package com.bgguardianlink.app;
 
+import android.app.AlarmManager;
+import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.PowerManager;
+import android.provider.Settings;
 import android.view.ViewGroup;
 import android.webkit.WebSettings;
-import android.widget.FrameLayout;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -22,6 +29,7 @@ public class MainActivity extends BridgeActivity {
     public static final String ALERT_CHANNEL_ID = "AlertChannel";
     private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 101;
     private static MainActivity instance;
+    private boolean serviceStarted = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -45,30 +53,70 @@ public class MainActivity extends BridgeActivity {
             return insets;
         });
 
-        // --- Permissions and Services ---
         createNotificationChannels();
-        if (hasNotificationPermission()) {
-            startBackgroundService();
-        } else {
-            requestNotificationPermission();
-        }
-    }
-
-    public static MainActivity getMainActivityInstance() {
-        return instance;
+        registerPlugin(UrgentNotificationPlugin.class);
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        instance = null;
+    public void onResume() {
+        super.onResume();
+        checkAndRequestPermissions();
+    }
+
+    private void checkAndRequestPermissions() {
+        if (!hasNotificationPermission()) {
+            requestNotificationPermission();
+        } else if (!isIgnoringBatteryOptimizations()) {
+            requestIgnoreBatteryOptimizations();
+        } else if (!canScheduleExactAlarms()) {
+            requestExactAlarmPermission();
+        } else if (!canUseFullScreenIntent()) {
+            requestFullScreenIntentPermission();
+        } else {
+            if (!serviceStarted) {
+                startBackgroundServiceWithDelay();
+                serviceStarted = true;
+            }
+        }
+    }
+
+    private boolean canScheduleExactAlarms() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            return alarmManager != null && alarmManager.canScheduleExactAlarms();
+        }
+        return true;
+    }
+
+    private void requestExactAlarmPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+            intent.setData(Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+        }
+    }
+
+    private boolean canUseFullScreenIntent() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            NotificationManager nm = getSystemService(NotificationManager.class);
+            return nm != null && nm.canUseFullScreenIntent();
+        }
+        return true;
+    }
+
+    private void requestFullScreenIntentPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT);
+            intent.setData(Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+        }
     }
 
     private boolean hasNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             return ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
         } else {
-            return true; // Permissions are granted by default on older versions
+            return true;
         }
     }
 
@@ -78,38 +126,65 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+    private boolean isIgnoringBatteryOptimizations() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+            return pm != null && pm.isIgnoringBatteryOptimizations(getPackageName());
+        } else {
+            return true;
+        }
+    }
+
+    private void requestIgnoreBatteryOptimizations() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+            intent.setData(Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+        }
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == NOTIFICATION_PERMISSION_REQUEST_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startBackgroundService();
-            }
-        }
+        // The onResume() method will handle the logic after the permission is granted or denied.
     }
 
     private void createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            // High-priority channel for alerts
             NotificationChannel alertChannel = new NotificationChannel(
                     ALERT_CHANNEL_ID,
-                    "High Priority Alerts",
+                    "Urgent Glucose Alerts",
                     NotificationManager.IMPORTANCE_HIGH
             );
-            alertChannel.setDescription("This channel is used for critical glucose alerts.");
+            alertChannel.setDescription("Critical glucose alerts that wake the phone and show on lock screen.");
             alertChannel.setBypassDnd(true);
+            alertChannel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+            alertChannel.enableVibration(true);
+            alertChannel.setVibrationPattern(new long[]{0, 500, 200, 500});
 
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(alertChannel);
         }
     }
 
-    private void startBackgroundService() {
-        Intent serviceIntent = new Intent(this, BackgroundService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(serviceIntent);
-        } else {
-            startService(serviceIntent);
-        }
+    private void startBackgroundServiceWithDelay() {
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            Intent serviceIntent = new Intent(this, BackgroundService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent);
+            } else {
+                startService(serviceIntent);
+            }
+        }, 2000); // 2-second delay
+    }
+
+    public static MainActivity getMainActivityInstance() {
+        return instance;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        instance = null;
     }
 }
