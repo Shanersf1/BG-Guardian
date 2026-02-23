@@ -87,9 +87,10 @@ export function playBeeps(count = 3, frequency = 880, durationMs = 150) {
 
 /**
  * Speak message using Capacitor TextToSpeech plugin.
- * Handles native permissions correctly on Android/iOS.
+ * DISABLED: Native BackgroundService should be the only source of alerts.
  */
 export async function speakAlert(message) {
+  return; // TTS disabled for native service testing
   try {
     const platform = Capacitor.getPlatform();
     console.log('[AlertAudio] speakAlert: using @capacitor-community/text-to-speech, platform=', platform);
@@ -138,10 +139,10 @@ const NOTIFICATION_TITLES = {
 
 /**
  * Triggers the full urgent alert: full-screen notification + voice.
- * Used when a critical glucose alert fires. On Android, wakes the phone and shows on lock screen.
- * @param {object} alert - { title, body, id }
+ * DISABLED: Native BackgroundService should be the only source of alerts.
  */
 export async function triggerFullUrgentAlert(alert) {
+  return; // Disabled for native service testing
   if (Capacitor.getPlatform() === 'web') return;
   try {
     if (Capacitor.getPlatform() === 'android' && UrgentNotification) {
@@ -209,10 +210,10 @@ async function scheduleLocalNotification(alertType, body) {
 
 /**
  * Play full alert: beeps, voice message, and local notification (on native).
- * On Android: uses UrgentNotification (full-screen) + TextToSpeech.
- * On iOS: uses LocalNotifications + TextToSpeech.
+ * DISABLED: Native BackgroundService should be the only source of alerts.
  */
 export async function playAlert(alertType, userName = 'User', value = null) {
+  return; // All JS alerts disabled for native service testing
   // #region agent log
   _log('alertAudio.js:playAlert:entry', 'playAlert called', { alertType, userName, value, isCapacitor: !!window.Capacitor }, 'A');
   // #endregion
