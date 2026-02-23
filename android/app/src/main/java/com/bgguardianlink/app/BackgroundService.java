@@ -71,17 +71,14 @@ public class BackgroundService extends Service implements TextToSpeech.OnInitLis
     }
 
     private void checkServerForUpdates() throws Exception {
-        // 1. Point this to your actual Railway/Server URL
         Request request = new Request.Builder()
-                .url("https://your-railway-app.com/api/readings")
+                .url("https://bg-guardian-production.up.railway.app:8080/api/readings")
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful()) {
                 String jsonData = response.body().string();
 
-                // 2. Simple logic to check if an alert is needed
-                // In a real scenario, use a JSON library like Gson to parse this
                 if (jsonData.contains("\"alert\":true")) {
                     triggerAlert("Urgent Glucose Alert!");
                 }
@@ -90,15 +87,12 @@ public class BackgroundService extends Service implements TextToSpeech.OnInitLis
     }
 
     private void triggerAlert(String message) {
-        // 1. Native Text-to-Speech (Bypasses WebView)
         if (tts != null) {
-            // Force the audio to the Alarm stream so it speaks even if muted
             Bundle params = new Bundle();
             params.putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_ALARM);
             tts.speak(message, TextToSpeech.QUEUE_FLUSH, params, "BG_ALERT_ID");
         }
 
-        // 2. High-Priority Notification with Full-Screen Intent
         showNotification(message);
     }
 
@@ -106,16 +100,19 @@ public class BackgroundService extends Service implements TextToSpeech.OnInitLis
         NotificationManager nm = getSystemService(NotificationManager.class);
 
         Intent intent = new Intent(this, MainActivity.class);
+        intent.setAction(Intent.ACTION_MAIN); // Required for lock screen bypass
+        intent.addCategory(Intent.CATEGORY_LAUNCHER); // Required for lock screen bypass
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pi = PendingIntent.getActivity(this, 0, intent,
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
 
-        Notification notification = new NotificationCompat.Builder(this, MainActivity.MONITOR_CHANNEL_ID) // Match MainActivity ID
+        Notification notification = new NotificationCompat.Builder(this, "MonitorChannel")
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("Glucose Monitor")
                 .setContentText(text)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setCategory(NotificationCompat.CATEGORY_ALARM) // Critical for Android 16
-                .setFullScreenIntent(pi, true) // Forces screen to wake up
+                .setCategory(NotificationCompat.CATEGORY_ALARM)
+                .setFullScreenIntent(pi, true)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setDefaults(Notification.DEFAULT_ALL)
                 .build();
@@ -148,7 +145,7 @@ public class BackgroundService extends Service implements TextToSpeech.OnInitLis
             NotificationChannel serviceChannel = new NotificationChannel(
                     CHANNEL_ID,
                     "Background Service Status",
-                    NotificationManager.IMPORTANCE_LOW // Low importance for the persistent notification
+                    NotificationManager.IMPORTANCE_LOW
             );
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(serviceChannel);

@@ -2,8 +2,9 @@ import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
-import AlertAudioMonitor from '@/components/AlertAudioMonitor'
-import BackgroundFetchListener from '@/components/BackgroundFetchListener'
+// DISABLED: JS alerts - native BackgroundService should be the only source of alerts
+// import AlertAudioMonitor from '@/components/AlertAudioMonitor'
+// import BackgroundFetchListener from '@/components/BackgroundFetchListener'
 import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
@@ -19,9 +20,9 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 function App() {
   return (
     <QueryClientProvider client={queryClientInstance}>
-      <BackgroundFetchListener />
+      {/* <BackgroundFetchListener /> */}
       <Router>
-        <AlertAudioMonitor />
+        {/* <AlertAudioMonitor /> */}
         <NavigationTracker />
         <Routes>
           <Route path="/" element={

@@ -30,6 +30,7 @@ public class MainActivity extends BridgeActivity {
     public static final String MONITOR_CHANNEL_ID = "MonitorChannel";
     private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 101;
     private static MainActivity instance;
+    private boolean serviceStarted = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -87,11 +88,14 @@ public class MainActivity extends BridgeActivity {
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !canDrawOverlays()) {
             requestOverlayPermission();
         } else {
-            Intent serviceIntent = new Intent(this, BackgroundService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent);
-            } else {
-                startService(serviceIntent);
+            if (!serviceStarted) {
+                Intent serviceIntent = new Intent(this, BackgroundService.class);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(serviceIntent);
+                } else {
+                    startService(serviceIntent);
+                }
+                serviceStarted = true;
             }
         }
     }
