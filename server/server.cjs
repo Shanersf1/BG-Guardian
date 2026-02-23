@@ -14,7 +14,7 @@ try {
 }
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8080;
 
 app.use(cors());
 app.use(express.json());
@@ -265,6 +265,7 @@ setInterval(() => {
 }, 10 * 60 * 1000);
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`BG Guardian Link server running on http://localhost:${PORT} (LAN: use your PC IP)`);
+    // Change localhost to 0.0.0.0 in the log so you know it's public
+    console.log(`BG Guardian Link server running on http://0.0.0.0:${PORT}`);
     console.log(`Auto-fetch from CGM every 5 minutes`);
 });
