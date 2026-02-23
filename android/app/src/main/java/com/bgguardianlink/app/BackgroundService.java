@@ -7,7 +7,9 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
+import android.media.AudioManager;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
@@ -69,45 +71,53 @@ public class BackgroundService extends Service implements TextToSpeech.OnInitLis
     }
 
     private void checkServerForUpdates() throws Exception {
+        // 1. Point this to your actual Railway/Server URL
         Request request = new Request.Builder()
-                .url("https://your-api-endpoint.com/status") // TODO: Replace with your actual API endpoint
+                .url("https://your-railway-app.com/api/readings")
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful()) {
-                String data = response.body().string();
-                // IF logic determines an alert is needed:
-                triggerAlert("New update received: " + data);
+                String jsonData = response.body().string();
+
+                // 2. Simple logic to check if an alert is needed
+                // In a real scenario, use a JSON library like Gson to parse this
+                if (jsonData.contains("\"alert\":true")) {
+                    triggerAlert("Urgent Glucose Alert!");
+                }
             }
         }
     }
 
     private void triggerAlert(String message) {
-        // 1. Speak the message
+        // 1. Native Text-to-Speech (Bypasses WebView)
         if (tts != null) {
-            tts.speak(message, TextToSpeech.QUEUE_FLUSH, null, "ID_1");
+            // Force the audio to the Alarm stream so it speaks even if muted
+            Bundle params = new Bundle();
+            params.putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_ALARM);
+            tts.speak(message, TextToSpeech.QUEUE_FLUSH, params, "BG_ALERT_ID");
         }
 
-        // 2. Show the visual notification
+        // 2. High-Priority Notification with Full-Screen Intent
         showNotification(message);
     }
 
     private void showNotification(String text) {
         NotificationManager nm = getSystemService(NotificationManager.class);
 
-        // This intent opens your app when the notification is clicked
         Intent intent = new Intent(this, MainActivity.class);
         PendingIntent pi = PendingIntent.getActivity(this, 0, intent,
                 PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
 
-        Notification notification = new NotificationCompat.Builder(this, "MONITOR_CHANNEL")
-                .setSmallIcon(R.mipmap.ic_launcher) // TODO: Replace with your actual alert icon
-                .setContentTitle("Monitor Alert")
+        Notification notification = new NotificationCompat.Builder(this, MainActivity.MONITOR_CHANNEL_ID) // Match MainActivity ID
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("Glucose Monitor")
                 .setContentText(text)
                 .setPriority(NotificationCompat.PRIORITY_MAX)
-                .setCategory(NotificationCompat.CATEGORY_ALARM)
-                .setFullScreenIntent(pi, true) // THE KEY: Wakes the screen
+                .setCategory(NotificationCompat.CATEGORY_ALARM) // Critical for Android 16
+                .setFullScreenIntent(pi, true) // Forces screen to wake up
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setDefaults(Notification.DEFAULT_ALL)
                 .build();
 
         nm.notify(2, notification);
