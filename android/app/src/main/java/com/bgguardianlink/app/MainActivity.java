@@ -27,9 +27,9 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
 
     public static final String ALERT_CHANNEL_ID = "AlertChannel";
+    public static final String MONITOR_CHANNEL_ID = "MonitorChannel";
     private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 101;
     private static MainActivity instance;
-    private boolean serviceStarted = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -37,8 +37,13 @@ public class MainActivity extends BridgeActivity {
         instance = this;
 
         // --- WebSettings Configuration ---
-        this.bridge.getWebView().getSettings().setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-        this.bridge.getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false);
+        WebSettings settings = this.bridge.getWebView().getSettings();
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+        settings.setMediaPlaybackRequiresUserGesture(false);
+        settings.setRenderPriority(WebSettings.RenderPriority.LOW);
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        settings.setDatabaseEnabled(false);
+        settings.setGeolocationEnabled(false);
 
         // --- Handle Safe Area Insets ---
         ViewCompat.setOnApplyWindowInsetsListener(this.bridge.getWebView(), (v, insets) -> {
@@ -55,6 +60,11 @@ public class MainActivity extends BridgeActivity {
 
         createNotificationChannels();
         registerPlugin(UrgentNotificationPlugin.class);
+
+        // Force-open Alarms & reminders on first launch (Android 12+). WebView is shown first, then settings open.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !canScheduleExactAlarms()) {
+            new Handler(Looper.getMainLooper()).postDelayed(this::requestExactAlarmPermission, 800);
+        }
     }
 
     @Override
@@ -64,18 +74,24 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void checkAndRequestPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !canScheduleExactAlarms()) {
+            requestExactAlarmPermission();
+            return;
+        }
         if (!hasNotificationPermission()) {
             requestNotificationPermission();
         } else if (!isIgnoringBatteryOptimizations()) {
             requestIgnoreBatteryOptimizations();
-        } else if (!canScheduleExactAlarms()) {
-            requestExactAlarmPermission();
         } else if (!canUseFullScreenIntent()) {
             requestFullScreenIntentPermission();
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !canDrawOverlays()) {
+            requestOverlayPermission();
         } else {
-            if (!serviceStarted) {
-                startBackgroundServiceWithDelay();
-                serviceStarted = true;
+            Intent serviceIntent = new Intent(this, BackgroundService.class);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(serviceIntent);
+            } else {
+                startService(serviceIntent);
             }
         }
     }
@@ -142,6 +158,22 @@ public class MainActivity extends BridgeActivity {
             startActivity(intent);
         }
     }
+    
+    private boolean canDrawOverlays() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return Settings.canDrawOverlays(this);
+        } else {
+            return true;
+        }
+    }
+
+    private void requestOverlayPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+        }
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
@@ -162,20 +194,19 @@ public class MainActivity extends BridgeActivity {
             alertChannel.enableVibration(true);
             alertChannel.setVibrationPattern(new long[]{0, 500, 200, 500});
 
+            NotificationChannel monitorChannel = new NotificationChannel(
+                    MONITOR_CHANNEL_ID,
+                    "Monitor Alerts",
+                    NotificationManager.IMPORTANCE_HIGH
+            );
+            monitorChannel.setDescription("High-priority alerts from the background monitor.");
+            monitorChannel.setBypassDnd(true);
+            monitorChannel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(alertChannel);
+            manager.createNotificationChannel(monitorChannel);
         }
-    }
-
-    private void startBackgroundServiceWithDelay() {
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            Intent serviceIntent = new Intent(this, BackgroundService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent);
-            } else {
-                startService(serviceIntent);
-            }
-        }, 2000); // 2-second delay
     }
 
     public static MainActivity getMainActivityInstance() {
