@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { App } from '@capacitor/app';
 
 const refetchReadings = (queryClient) => {
   queryClient.invalidateQueries({ queryKey: ['bgReadings'] });
@@ -9,10 +8,11 @@ const refetchReadings = (queryClient) => {
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
 
 /**
- * Central listener for native background updates and app lifecycle.
- * - bgg-data-update: Receives readings from MainActivity (BackgroundService).
- *   MUST be here (top-level) so it's always active regardless of current page.
- * - app-resume: Refetch when app comes to foreground.
+ * Central listener for native background updates.
+ * Capacitor resume/appStateChange are registered in main.jsx (before React mounts).
+ * Here we handle:
+ * - bgg-data-update: Readings from MainActivity (BackgroundService).
+ * - app-resume: Window event from MainActivity.onResume.
  * - 5-min timer: Fixed sync interval, never reset.
  */
 export default function AppRefreshListener() {
@@ -42,13 +42,6 @@ export default function AppRefreshListener() {
 
     window.addEventListener('app-resume', onAppResume);
 
-    let resumeHandle = null;
-    let stateHandle = null;
-    App.addListener('resume', onAppResume).then((h) => { resumeHandle = h; });
-    App.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) refetchReadings(queryClient);
-    }).then((h) => { stateHandle = h; });
-
     const fiveMinInterval = setInterval(() => {
       refetchReadings(queryClient);
     }, FIVE_MINUTES_MS);
@@ -56,8 +49,6 @@ export default function AppRefreshListener() {
     return () => {
       window.removeEventListener('bgg-data-update', onBggDataUpdate);
       window.removeEventListener('app-resume', onAppResume);
-      if (resumeHandle) resumeHandle.remove();
-      if (stateHandle) stateHandle.remove();
       clearInterval(fiveMinInterval);
     };
   }, [queryClient]);

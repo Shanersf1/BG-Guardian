@@ -3,10 +3,6 @@ import { render } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AppRefreshListener from './AppRefreshListener';
 
-vi.mock('@capacitor/app', () => ({
-  App: { addListener: vi.fn(() => Promise.resolve({ remove: vi.fn() })) },
-}));
-
 function renderWithClient() {
   const queryClient = new QueryClient();
   render(
