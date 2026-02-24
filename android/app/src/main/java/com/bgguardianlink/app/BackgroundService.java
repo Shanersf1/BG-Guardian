@@ -53,7 +53,7 @@ public class BackgroundService extends Service implements TextToSpeech.OnInitLis
                 .build();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC);
+            startForeground(1, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_HEALTH);
         } else {
             startForeground(1, notification);
         }
