@@ -276,7 +276,7 @@ export default function Settings() {
                                 type="button"
                                 variant="outline"
                                 className="w-full justify-start text-left whitespace-normal h-auto py-3 px-4"
-                                onClick={() => playAlert('low', formData.user_name || 'User', 3.5)}
+                                onClick={() => playAlert('low', formData.user_name || 'User', 3.5, formData.alert_volume ?? 1)}
                             >
                                 <Volume2 className="w-4 h-4 mr-2 shrink-0" />
                                 <span className="break-words">Test alert (tap to unlock audio on mobile)</span>

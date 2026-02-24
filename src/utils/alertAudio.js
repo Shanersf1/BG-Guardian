@@ -1,9 +1,10 @@
 /**
  * Client-side alert audio using Web Audio API and Capacitor TextToSpeech.
  * Uses @capacitor-community/text-to-speech for native TTS (Android/iOS) with proper permissions.
+ * playAlert/speakAlert enabled for Test button; automatic monitoring uses native BackgroundService.
  */
 
-// DISABLED: TextToSpeech + LocalNotifications imports removed - native BackgroundService only
+import { TextToSpeech } from '@capacitor-community/text-to-speech';
 
 // #region agent log
 function _log(location, message, data, hypothesisId) {
@@ -63,13 +64,23 @@ export function playBeeps(count = 3, frequency = 880, durationMs = 150) {
 
 /**
  * Speak message using Capacitor TextToSpeech plugin.
- * DISABLED: Native BackgroundService should be the only source of alerts.
+ * Used by Test alert button. volume 0-1 (default 1).
  */
-export async function speakAlert(message) {
-  // DISABLED: TextToSpeech.speak() commented out - native BackgroundService only
-  return;
-  // eslint-disable-next-line no-unreachable
-  /* await TextToSpeech.speak({ text: message, lang: 'en-GB', rate: 1.0, pitch: 1.0, volume: 1.0, category: 'ambient' }); */
+export async function speakAlert(message, volume = 1) {
+  try {
+    if (!message?.trim()) return;
+    const vol = Math.max(0, Math.min(1, Number(volume) ?? 1));
+    await TextToSpeech.speak({
+      text: message,
+      lang: 'en-GB',
+      rate: 1.0,
+      pitch: 1.0,
+      volume: vol,
+      category: 'ambient',
+    });
+  } catch (e) {
+    console.warn('[AlertAudio] TTS failed:', e);
+  }
 }
 
 const MESSAGES = {
@@ -115,13 +126,16 @@ async function scheduleLocalNotification(alertType, body) {
 }
 
 /**
- * Play full alert: beeps, voice message, and local notification (on native).
- * DISABLED: Native BackgroundService should be the only source of alerts.
+ * Play full alert: beeps + voice. Used by Test button.
+ * volume 0-1 from settings (default 1).
+ * Automatic monitoring uses native BackgroundService, not this.
  */
-export async function playAlert(alertType, userName = 'User', value = null) {
-  // DISABLED: No beeps, TTS, or notifications - native BackgroundService only
-  void alertType;
-  void userName;
-  void value;
-  return;
+export async function playAlert(alertType, userName = 'User', value = null, volume = 1) {
+  const name = (userName || 'User').trim() || 'User';
+  const msg = MESSAGES[alertType]
+    ? MESSAGES[alertType](name, value)
+    : `Hey ${name}, glucose alert. Please check your glucose.`;
+
+  playBeeps(3);
+  setTimeout(() => speakAlert(msg, volume ?? 1), 900);
 }
