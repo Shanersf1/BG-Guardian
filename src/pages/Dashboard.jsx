@@ -53,27 +53,6 @@ export default function Dashboard() {
     const [refreshError, setRefreshError] = useState(null);
     const queryClient = useQueryClient();
 
-    useEffect(() => {
-        const onBggDataUpdate = (event) => {
-            try {
-                const payload = event?.detail;
-                if (payload == null) return;
-                const newData = typeof payload === 'string' ? JSON.parse(payload) : payload;
-                if (Array.isArray(newData)) {
-                    queryClient.setQueryData(['bgReadings'], newData);
-                    console.log('bgg-data-update: received', newData.length, 'readings from native background service');
-                } else {
-                    queryClient.invalidateQueries({ queryKey: ['bgReadings'] });
-                }
-            } catch (err) {
-                console.warn('bgg-data-update: failed to parse, refetching instead', err);
-                queryClient.invalidateQueries({ queryKey: ['bgReadings'] });
-            }
-        };
-        window.addEventListener('bgg-data-update', onBggDataUpdate);
-        return () => window.removeEventListener('bgg-data-update', onBggDataUpdate);
-    }, [queryClient]);
-
     const { data: readings = [], isLoading, isFetching, dataUpdatedAt, refetch } = useQuery({
         queryKey: ['bgReadings'],
         queryFn: () => api.getReadings(50),

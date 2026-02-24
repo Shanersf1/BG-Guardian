@@ -36,4 +36,22 @@ describe('AppRefreshListener', () => {
     window.dispatchEvent(new CustomEvent('app-resume'));
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['bgReadings'] });
   });
+
+  it('listens for bgg-data-update and sets query data when payload is array', () => {
+    const { queryClient } = renderWithClient();
+    const setQueryDataSpy = vi.spyOn(queryClient, 'setQueryData');
+    const readings = [{ id: 1, glucose_value: 100 }];
+
+    window.dispatchEvent(new CustomEvent('bgg-data-update', { detail: readings }));
+    expect(setQueryDataSpy).toHaveBeenCalledWith(['bgReadings'], readings);
+  });
+
+  it('parses string payload and sets query data on bgg-data-update', () => {
+    const { queryClient } = renderWithClient();
+    const setQueryDataSpy = vi.spyOn(queryClient, 'setQueryData');
+    const readings = [{ id: 1, glucose_value: 100 }];
+
+    window.dispatchEvent(new CustomEvent('bgg-data-update', { detail: JSON.stringify(readings) }));
+    expect(setQueryDataSpy).toHaveBeenCalledWith(['bgReadings'], readings);
+  });
 });

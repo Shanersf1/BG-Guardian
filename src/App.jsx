@@ -27,7 +27,15 @@ function App() {
   useEffect(() => {
     if (Capacitor.getPlatform() !== 'web') {
       const t = setTimeout(() => {
-        MyUiReadyPlugin?.uiReady?.().catch(() => {});
+        try {
+          MyUiReadyPlugin.uiReady().then(() => {
+            console.log('[App] uiReady() called - pending updates flushed to WebView');
+          }).catch((err) => {
+            console.warn('[App] uiReady() failed:', err);
+          });
+        } catch (err) {
+          console.warn('[App] MyUiReadyPlugin.uiReady not available:', err);
+        }
       }, 500);
       return () => clearTimeout(t);
     }
