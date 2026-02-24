@@ -223,24 +223,9 @@ export default function Settings() {
 
                 <MobileNotificationCard />
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Alert Email</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="alert_email">Email Address</Label>
-                            <Input
-                                id="alert_email"
-                                type="email"
-                                placeholder="your@email.com"
-                                value={formData.alert_email}
-                                onChange={(e) => setFormData({ ...formData, alert_email: e.target.value })}
-                            />
-                            <p className="text-sm text-gray-500">Email alerts require additional setup (e.g. nodemailer). For now, thresholds are used for display only.</p>
-                        </div>
-                    </CardContent>
-                </Card>
+                <p className="text-sm text-gray-600">
+                    Support: <a href="mailto:odesdave30@gmail.com" className="text-blue-600 hover:underline">odesdave30@gmail.com</a>
+                </p>
 
                 <Button 
                     onClick={handleSave}

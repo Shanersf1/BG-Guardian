@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from './utils';
-import { Activity, BarChart2, LayoutDashboard, Link2, Settings } from 'lucide-react';
+import { Activity, BarChart2, Link2, Settings } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
     return (
@@ -25,17 +25,6 @@ export default function Layout({ children, currentPageName }) {
                             >
                                 <BarChart2 className="w-4 h-4 shrink-0" />
                                 <span className="hidden sm:inline">Dashboard</span>
-                            </Link>
-                            <Link
-                                to={createPageUrl('Widget')}
-                                className={`px-3 md:px-4 py-2 rounded-lg transition-colors text-sm md:text-base flex items-center gap-1 shrink-0 ${
-                                    currentPageName === 'Widget'
-                                        ? 'bg-blue-600 text-white'
-                                        : 'text-gray-600 hover:bg-gray-100'
-                                }`}
-                            >
-                                <LayoutDashboard className="w-4 h-4" />
-                                <span className="hidden sm:inline">Widget</span>
                             </Link>
                             <Link
                                 to={createPageUrl('Connect')}
@@ -65,7 +54,12 @@ export default function Layout({ children, currentPageName }) {
             </nav>
 
             {/* Page Content */}
-            {children}
+            <div className="flex flex-col min-h-screen">
+                <div className="flex-1">{children}</div>
+                <footer className="py-4 text-center text-sm text-gray-500 border-t bg-white">
+                    © {new Date().getFullYear()} SKF
+                </footer>
+            </div>
         </div>
     );
 }
