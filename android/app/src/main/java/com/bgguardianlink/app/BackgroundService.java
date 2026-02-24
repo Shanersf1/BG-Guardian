@@ -32,6 +32,9 @@ import okhttp3.Response;
 public class BackgroundService extends Service implements TextToSpeech.OnInitListener {
 
     public static final String CHANNEL_ID = "BackgroundServiceChannel";
+    public static final String ACTION_DATA_UPDATE = "com.bgguardianlink.app.DATA_UPDATE";
+    public static final String EXTRA_DATA = "com.bgguardianlink.app.EXTRA_DATA";
+
     private TextToSpeech tts;
     private ScheduledExecutorService scheduler;
     private final OkHttpClient client = new OkHttpClient();
@@ -83,6 +86,11 @@ public class BackgroundService extends Service implements TextToSpeech.OnInitLis
             if (response.isSuccessful()) {
                 String jsonData = response.body().string();
                 Log.d("Monitor", "Received data: " + jsonData);
+
+                // Broadcast the data to the activity
+                Intent intent = new Intent(ACTION_DATA_UPDATE);
+                intent.putExtra(EXTRA_DATA, jsonData);
+                sendBroadcast(intent);
 
                 AlertPayload payload = parseAlertPayload(jsonData);
                 if (payload != null) {

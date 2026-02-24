@@ -10,7 +10,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 public class MyUiReadyPlugin extends Plugin {
 
     @PluginMethod
-    public void uiIsReady(PluginCall call) {
+    public void uiReady(PluginCall call) {
         MainActivity activity = (MainActivity) getContext();
         if (activity != null) {
             activity.processPendingDataUpdates();

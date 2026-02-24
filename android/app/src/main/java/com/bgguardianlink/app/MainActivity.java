@@ -4,8 +4,10 @@ import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
@@ -15,6 +17,7 @@ import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.Settings;
 import android.view.ViewGroup;
+import android.webkit.WebView;
 import android.webkit.WebSettings;
 
 import androidx.core.app.ActivityCompat;
@@ -23,6 +26,9 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.getcapacitor.BridgeActivity;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
 
 public class MainActivity extends BridgeActivity {
 
@@ -31,11 +37,45 @@ public class MainActivity extends BridgeActivity {
     private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 101;
     private static MainActivity instance;
     private boolean serviceStarted = false;
+    private boolean isUiReady = false;
+    private ArrayList<String> pendingDataUpdates = new ArrayList<>();
+
+    private BroadcastReceiver dataUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            final String jsonData = intent.getStringExtra(BackgroundService.EXTRA_DATA);
+            if (jsonData != null) {
+                if (isUiReady) {
+                    dispatchDataToWebView(jsonData);
+                } else {
+                    pendingDataUpdates.add(jsonData);
+                }
+            }
+        }
+    };
+
+    public void processPendingDataUpdates() {
+        isUiReady = true;
+        for (String jsonData : pendingDataUpdates) {
+            dispatchDataToWebView(jsonData);
+        }
+        pendingDataUpdates.clear();
+    }
+
+    private void dispatchDataToWebView(String jsonData) {
+        final WebView webView = getBridge().getWebView();
+        webView.post(() -> {
+            String script = "window.dispatchEvent(new CustomEvent('bgg-data-update', { detail: " + JSONObject.quote(jsonData) + " }));";
+            webView.evaluateJavascript(script, null);
+        });
+    }
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         instance = this;
+        registerPlugin(MyUiReadyPlugin.class);
 
         // --- WebSettings Configuration ---
         WebSettings settings = this.bridge.getWebView().getSettings();
@@ -72,6 +112,17 @@ public class MainActivity extends BridgeActivity {
     public void onResume() {
         super.onResume();
         checkAndRequestPermissions();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(dataUpdateReceiver, new IntentFilter(BackgroundService.ACTION_DATA_UPDATE), RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(dataUpdateReceiver, new IntentFilter(BackgroundService.ACTION_DATA_UPDATE));
+        }
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        unregisterReceiver(dataUpdateReceiver);
     }
 
     private void checkAndRequestPermissions() {

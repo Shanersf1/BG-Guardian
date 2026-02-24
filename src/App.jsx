@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
+import AppRefreshListener from '@/components/AppRefreshListener'
 // DISABLED: JS alerts - native BackgroundService should be the only source of alerts
 // import AlertAudioMonitor from '@/components/AlertAudioMonitor'
 // import BackgroundFetchListener from '@/components/BackgroundFetchListener'
@@ -20,7 +21,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 function App() {
   return (
     <QueryClientProvider client={queryClientInstance}>
-      {/* <BackgroundFetchListener /> */}
+      <AppRefreshListener />
       <Router>
         {/* <AlertAudioMonitor /> */}
         <NavigationTracker />
