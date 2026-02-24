@@ -3,31 +3,7 @@
  * Uses @capacitor-community/text-to-speech for native TTS (Android/iOS) with proper permissions.
  */
 
-import { TextToSpeech } from '@capacitor-community/text-to-speech';
-import { LocalNotifications } from '@capacitor/local-notifications';
-import { Capacitor } from '@capacitor/core';
-import { registerPlugin } from '@capacitor/core';
-
-const ALERT_CHANNEL_ID = 'AlertChannel';
-const ALERT_IDS = { low: 1, high: 2, rapid_rise: 3, rapid_fall: 4, stale: 5 };
-let localNotificationReady = false;
-
-// Android-only: urgent notifications with full-screen intent to wake sleeping phone
-const UrgentNotification = registerPlugin('UrgentNotification');
-
-async function ensureLocalNotificationReady() {
-  if (localNotificationReady || Capacitor.getPlatform() === 'web') return;
-  try {
-    const { display } = await LocalNotifications.checkPermissions();
-    if (display !== 'granted') {
-      const { display: after } = await LocalNotifications.requestPermissions();
-      if (after !== 'granted') return;
-    }
-    localNotificationReady = true;
-  } catch (e) {
-    console.warn('[AlertAudio] Local notification setup failed:', e);
-  }
-}
+// DISABLED: TextToSpeech + LocalNotifications imports removed - native BackgroundService only
 
 // #region agent log
 function _log(location, message, data, hypothesisId) {
@@ -90,30 +66,10 @@ export function playBeeps(count = 3, frequency = 880, durationMs = 150) {
  * DISABLED: Native BackgroundService should be the only source of alerts.
  */
 export async function speakAlert(message) {
-  return; // TTS disabled for native service testing
-  try {
-    const platform = Capacitor.getPlatform();
-    console.log('[AlertAudio] speakAlert: using @capacitor-community/text-to-speech, platform=', platform);
-    _log('alertAudio.js:speakAlert:entry', 'speakAlert called', { msgLen: message?.length, platform }, 'C');
-    if (!message?.trim()) return;
-
-    await TextToSpeech.speak({
-      text: message,
-      lang: 'en-GB',
-      rate: 1.0,
-      pitch: 1.0,
-      volume: 1.0,
-      category: 'ambient',
-    });
-    console.log('[AlertAudio] TextToSpeech.speak() completed');
-    _log('alertAudio.js:speakAlert:speak', 'TextToSpeech.speak() completed', { platform }, 'C');
-    // #endregion
-  } catch (e) {
-    // #region agent log
-    _log('alertAudio.js:speakAlert:error', 'TTS failed', { error: String(e), message: e?.message }, 'C');
-    // #endregion
-    console.warn('[AlertAudio] TTS failed:', e);
-  }
+  // DISABLED: TextToSpeech.speak() commented out - native BackgroundService only
+  return;
+  // eslint-disable-next-line no-unreachable
+  /* await TextToSpeech.speak({ text: message, lang: 'en-GB', rate: 1.0, pitch: 1.0, volume: 1.0, category: 'ambient' }); */
 }
 
 const MESSAGES = {
@@ -142,30 +98,9 @@ const NOTIFICATION_TITLES = {
  * DISABLED: Native BackgroundService should be the only source of alerts.
  */
 export async function triggerFullUrgentAlert(alert) {
-  return; // Disabled for native service testing
-  if (Capacitor.getPlatform() === 'web') return;
-  try {
-    if (Capacitor.getPlatform() === 'android' && UrgentNotification) {
-      await UrgentNotification.show({
-        title: alert.title,
-        body: alert.body,
-        id: alert.id,
-      });
-    }
-    if (alert.body?.trim()) {
-      await TextToSpeech.speak({
-        text: alert.body,
-        lang: 'en-US',
-        rate: 1.0,
-        pitch: 1.0,
-        volume: 1.0,
-        category: 'ambient',
-      });
-    }
-    console.log('[AlertAudio] Full urgent alert triggered.');
-  } catch (e) {
-    console.error('[AlertAudio] Full urgent alert failed:', e);
-  }
+  // DISABLED: UrgentNotification.show + TextToSpeech.speak commented out - native only
+  void alert;
+  return;
 }
 
 /**
@@ -173,39 +108,10 @@ export async function triggerFullUrgentAlert(alert) {
  * On iOS: fallback to LocalNotifications.
  */
 async function scheduleLocalNotification(alertType, body) {
-  if (Capacitor.getPlatform() === 'web') return;
-  const id = ALERT_IDS[alertType] ?? 0;
-  const title = NOTIFICATION_TITLES[alertType] || 'BG Alert';
-
-  if (Capacitor.getPlatform() === 'android') {
-    try {
-      await UrgentNotification.show({ title, body, id });
-    } catch (e) {
-      console.warn('[AlertAudio] Urgent notification failed:', e);
-    }
-    return;
-  }
-
-  try {
-    await ensureLocalNotificationReady();
-    await LocalNotifications.schedule({
-      notifications: [
-        {
-          title,
-          body,
-          id,
-          schedule: { at: new Date(Date.now() + 1000) },
-          sound: null,
-          attachments: null,
-          actionTypeId: '',
-          extra: null,
-          channelId: ALERT_CHANNEL_ID,
-        },
-      ],
-    });
-  } catch (e) {
-    console.warn('[AlertAudio] Local notification failed:', e);
-  }
+  // DISABLED: LocalNotifications.schedule + UrgentNotification.show commented out - native only
+  void alertType;
+  void body;
+  return;
 }
 
 /**
@@ -213,26 +119,9 @@ async function scheduleLocalNotification(alertType, body) {
  * DISABLED: Native BackgroundService should be the only source of alerts.
  */
 export async function playAlert(alertType, userName = 'User', value = null) {
-  return; // All JS alerts disabled for native service testing
-  // #region agent log
-  _log('alertAudio.js:playAlert:entry', 'playAlert called', { alertType, userName, value, isCapacitor: !!window.Capacitor }, 'A');
-  // #endregion
-  const name = (userName || 'User').trim() || 'User';
-  const msg = MESSAGES[alertType]
-    ? MESSAGES[alertType](name, value)
-    : `Hey ${name}, glucose alert. Please check your glucose.`;
-  const title = NOTIFICATION_TITLES[alertType] || 'BG Alert';
-  const id = ALERT_IDS[alertType] ?? 0;
-
-  if (Capacitor.getPlatform() === 'android') {
-    await triggerFullUrgentAlert({ title, body: msg, id });
-    playBeeps(3);
-    return;
-  }
-
-  if (Capacitor.getPlatform() === 'ios') {
-    await scheduleLocalNotification(alertType, msg);
-  }
-  playBeeps(3);
-  setTimeout(() => speakAlert(msg), 900);
+  // DISABLED: No beeps, TTS, or notifications - native BackgroundService only
+  void alertType;
+  void userName;
+  void value;
+  return;
 }
