@@ -6,6 +6,45 @@ const storage = require('./storage.cjs');
 const { fetchCGM } = require('./fetch.cjs');
 const { checkStaleAlert } = require('./alertService.cjs');
 
+const MGDL_TO_MMOL = 1 / 18.0182;
+
+function toMmol(mgdl) {
+    if (mgdl == null || isNaN(mgdl)) return null;
+    return Math.round(mgdl * MGDL_TO_MMOL * 10) / 10;
+}
+
+/** Returns true if the latest reading meets any alert condition. Uses mmol for threshold comparison when unit is mmol. */
+function shouldAlertForLatestReading(readings, settings) {
+    if (!readings?.length || !settings) return false;
+    const latest = readings[0];
+    const unit = settings.bg_unit || 'mmol';
+    const displayVal = unit === 'mmol' ? toMmol(latest.glucose_value) : Number(latest.glucose_value);
+    if (displayVal == null || isNaN(displayVal)) return false;
+
+    const low = settings.low_threshold ?? (unit === 'mmol' ? 3.9 : 70);
+    const high = settings.high_threshold ?? (unit === 'mmol' ? 10 : 180);
+
+    if (settings.low_alert_enabled !== false && displayVal < low) return true;
+    if (settings.high_alert_enabled !== false && displayVal > high) return true;
+
+    if (settings.rapid_rise_enabled || settings.rapid_fall_enabled) {
+        const now = new Date(latest.timestamp).getTime();
+        const fifteenMinAgo = now - 15 * 60 * 1000;
+        const oldReading = readings.find((r) => new Date(r.timestamp).getTime() <= fifteenMinAgo);
+        if (oldReading) {
+            const oldVal = unit === 'mmol' ? toMmol(oldReading.glucose_value) : Number(oldReading.glucose_value);
+            if (oldVal != null && !isNaN(oldVal)) {
+                const diff = displayVal - oldVal;
+                const riseThresh = settings.rapid_rise_threshold ?? 1.7;
+                const fallThresh = settings.rapid_fall_threshold ?? 1.7;
+                if (settings.rapid_rise_enabled !== false && diff >= riseThresh) return true;
+                if (settings.rapid_fall_enabled !== false && diff <= -fallThresh) return true;
+            }
+        }
+    }
+    return false;
+}
+
 let pushService = null;
 try {
     pushService = require('./pushService.cjs');
@@ -19,10 +58,19 @@ const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
-// API: Readings
+// API: Readings - adds alert:true to latest reading when it crosses thresholds (for native app)
 app.get('/api/readings', (req, res) => {
     const limit = parseInt(req.query.limit) || 50;
-    res.json(storage.getReadings(limit));
+    const readings = storage.getReadings(limit);
+    const settings = storage.getSettings();
+    const alert = shouldAlertForLatestReading(readings, settings);
+
+    const enriched = readings.map((r, i) => ({
+        ...r,
+        alert: i === 0 ? alert : false
+    }));
+
+    res.json(enriched);
 });
 
 app.post('/api/readings', (req, res) => {

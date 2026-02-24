@@ -62,6 +62,7 @@ public class BackgroundService extends Service implements TextToSpeech.OnInitLis
         scheduler = Executors.newSingleThreadScheduledExecutor();
         // Runs every 5 minutes
         scheduler.scheduleAtFixedRate(() -> {
+            Log.d("Monitor", "Heartbeat task started.");
             try {
                 checkServerForUpdates();
             } catch (Exception e) {
@@ -78,8 +79,10 @@ public class BackgroundService extends Service implements TextToSpeech.OnInitLis
         try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful()) {
                 String jsonData = response.body().string();
+                Log.d("Monitor", "Received data: " + jsonData);
 
                 if (jsonData.contains("\"alert\":true")) {
+                    Log.d("Monitor", "Alert condition met. Triggering notification.");
                     triggerAlert("Urgent Glucose Alert!");
                 }
             }
