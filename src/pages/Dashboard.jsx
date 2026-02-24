@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '@/api/localApi';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, TrendingUp, TrendingDown, Minus, ArrowUp, ArrowDown, Activity, Droplet, Battery, Clock } from 'lucide-react';
@@ -50,6 +50,15 @@ const getUnit = (settings) => (settings?.bg_unit ?? 'mmol') === 'mmol' ? 'mmol/L
 export default function Dashboard() {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [refreshError, setRefreshError] = useState(null);
+    const queryClient = useQueryClient();
+
+    useEffect(() => {
+        const onBggDataUpdate = () => {
+            queryClient.invalidateQueries({ queryKey: ['bgReadings'] });
+        };
+        window.addEventListener('bgg-data-update', onBggDataUpdate);
+        return () => window.removeEventListener('bgg-data-update', onBggDataUpdate);
+    }, [queryClient]);
 
     const { data: readings = [], isLoading, refetch } = useQuery({
         queryKey: ['bgReadings'],
