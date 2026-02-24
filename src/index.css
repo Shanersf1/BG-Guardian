@@ -82,6 +82,10 @@
     @apply border-border outline-ring/50;
   }
 
+  html, body {
+    @apply overflow-x-hidden max-w-full;
+  }
+
   body {
     @apply bg-background text-foreground;
   }
