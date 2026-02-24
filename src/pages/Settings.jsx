@@ -61,8 +61,8 @@ export default function Settings() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4 md:p-6">
-            <div className="max-w-4xl mx-auto space-y-6">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4 md:p-6 overflow-x-hidden">
+            <div className="max-w-4xl mx-auto space-y-6 min-w-0">
                 <h1 className="text-3xl font-bold text-gray-800">Alert Settings</h1>
 
                 <Card>
@@ -138,10 +138,10 @@ export default function Settings() {
                             { id: 'rapid_fall', key: 'rapid_fall_enabled', label: 'Rapid Fall Alert', desc: 'Alert when BG drops quickly' },
                             { id: 'stale_data', key: 'stale_data_enabled', label: 'Stale Data Alert', desc: 'Alert when no reading for 20+ minutes' }
                         ].map(({ id, key, label, desc }) => (
-                            <div key={id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                                <div>
+                            <div key={id} className="flex items-center justify-between gap-4 p-4 bg-gray-50 rounded-lg min-w-0">
+                                <div className="min-w-0 flex-1">
                                     <Label htmlFor={id} className="font-medium">{label}</Label>
-                                    <p className="text-sm text-gray-500">{desc}</p>
+                                    <p className="text-sm text-gray-500 break-words">{desc}</p>
                                 </div>
                                 <Switch
                                     id={id}
@@ -227,23 +227,24 @@ export default function Settings() {
                     <CardHeader>
                         <CardTitle>Voice Alerts</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <p className="text-sm text-gray-600">
+                    <CardContent className="space-y-4 overflow-hidden min-w-0">
+                        <p className="text-sm text-gray-600 break-words">
                             Plays beeps and voice warnings in your browser when alerts fire. Works on PC and mobile.
                         </p>
-                        <div className="space-y-2">
+                        <div className="space-y-2 min-w-0">
                             <Label htmlFor="user_name">Your name (for voice greeting)</Label>
                             <Input
                                 id="user_name"
                                 placeholder="e.g. John"
                                 value={formData.user_name}
                                 onChange={(e) => setFormData({ ...formData, user_name: e.target.value })}
+                                className="min-w-0"
                             />
                         </div>
-                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                            <div>
+                        <div className="flex items-center justify-between gap-4 p-4 bg-gray-50 rounded-lg min-w-0">
+                            <div className="min-w-0 flex-1">
                                 <Label htmlFor="audio_alerts" className="font-medium">Enable audio alerts</Label>
-                                <p className="text-sm text-gray-500 mt-0.5">Beeps + spoken warning on this device</p>
+                                <p className="text-sm text-gray-500 mt-0.5 break-words">Beeps + spoken warning on this device</p>
                             </div>
                             <Switch
                                 id="audio_alerts"
@@ -251,18 +252,20 @@ export default function Settings() {
                                 onCheckedChange={(checked) => setFormData({ ...formData, audio_alerts_enabled: checked })}
                             />
                         </div>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="w-full"
-                            onClick={() => playAlert('low', formData.user_name || 'User', 3.5)}
-                        >
-                            <Volume2 className="w-4 h-4 mr-2" />
-                            Test alert (tap to unlock audio on mobile)
-                        </Button>
-                        <p className="text-xs text-gray-500">
-                            On mobile, tap Test alert once to allow audio. Keep the app open in the foreground for alerts.
-                        </p>
+                        <div className="space-y-2 min-w-0">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full justify-start text-left whitespace-normal h-auto py-3 px-4"
+                                onClick={() => playAlert('low', formData.user_name || 'User', 3.5)}
+                            >
+                                <Volume2 className="w-4 h-4 mr-2 shrink-0" />
+                                <span className="break-words">Test alert (tap to unlock audio on mobile)</span>
+                            </Button>
+                            <p className="text-xs text-gray-500 break-words">
+                                On mobile, tap Test alert once to allow audio. Keep the app open in the foreground for alerts.
+                            </p>
+                        </div>
                     </CardContent>
                 </Card>
 

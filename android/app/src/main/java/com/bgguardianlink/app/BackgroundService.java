@@ -17,6 +17,9 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -81,12 +84,29 @@ public class BackgroundService extends Service implements TextToSpeech.OnInitLis
                 String jsonData = response.body().string();
                 Log.d("Monitor", "Received data: " + jsonData);
 
-                if (jsonData.contains("\"alert\":true")) {
+                String ttsMessage = parseAlertMessage(jsonData);
+                if (ttsMessage != null) {
                     Log.d("Monitor", "Alert condition met. Triggering notification.");
-                    triggerAlert("Urgent Glucose Alert!");
+                    triggerAlert(ttsMessage);
                 }
             }
         }
+    }
+
+    private String parseAlertMessage(String jsonData) {
+        try {
+            JSONArray arr = new JSONArray(jsonData);
+            if (arr.length() > 0) {
+                JSONObject first = arr.getJSONObject(0);
+                if (first.optBoolean("alert", false)) {
+                    String msg = first.optString("alert_message", null);
+                    return (msg != null && !msg.isEmpty()) ? msg : "Urgent glucose alert!";
+                }
+            }
+        } catch (Exception e) {
+            Log.e("Monitor", "Failed to parse alert from JSON", e);
+        }
+        return null;
     }
 
     private void triggerAlert(String message) {

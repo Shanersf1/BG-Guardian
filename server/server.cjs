@@ -13,21 +13,30 @@ function toMmol(mgdl) {
     return Math.round(mgdl * MGDL_TO_MMOL * 10) / 10;
 }
 
-/** Returns true if the latest reading meets any alert condition. Uses mmol for threshold comparison when unit is mmol. */
-function shouldAlertForLatestReading(readings, settings) {
-    if (!readings?.length || !settings) return false;
+/** Returns { alert, alert_type, alert_message } for the latest reading. Uses mmol for threshold comparison when unit is mmol. */
+function getAlertForLatestReading(readings, settings) {
+    const none = { alert: false, alert_type: null, alert_message: null };
+    if (!readings?.length || !settings) return none;
+
     const latest = readings[0];
     const unit = settings.bg_unit || 'mmol';
     const displayVal = unit === 'mmol' ? toMmol(latest.glucose_value) : Number(latest.glucose_value);
-    if (displayVal == null || isNaN(displayVal)) return false;
+    if (displayVal == null || isNaN(displayVal)) return none;
 
+    const userName = (settings.user_name || 'User').trim() || 'User';
+    const valueStr = String(displayVal);
     const low = settings.low_threshold ?? (unit === 'mmol' ? 3.9 : 70);
     const high = settings.high_threshold ?? (unit === 'mmol' ? 10 : 180);
 
-    if (settings.low_alert_enabled !== false && displayVal < low) return true;
-    if (settings.high_alert_enabled !== false && displayVal > high) return true;
+    let alertType = null;
 
-    if (settings.rapid_rise_enabled || settings.rapid_fall_enabled) {
+    if (settings.low_alert_enabled !== false && displayVal < low) {
+        alertType = 'low';
+    } else if (settings.high_alert_enabled !== false && displayVal > high) {
+        alertType = 'high';
+    }
+
+    if (!alertType && (settings.rapid_rise_enabled || settings.rapid_fall_enabled)) {
         const now = new Date(latest.timestamp).getTime();
         const fifteenMinAgo = now - 15 * 60 * 1000;
         const oldReading = readings.find((r) => new Date(r.timestamp).getTime() <= fifteenMinAgo);
@@ -37,12 +46,26 @@ function shouldAlertForLatestReading(readings, settings) {
                 const diff = displayVal - oldVal;
                 const riseThresh = settings.rapid_rise_threshold ?? 1.7;
                 const fallThresh = settings.rapid_fall_threshold ?? 1.7;
-                if (settings.rapid_rise_enabled !== false && diff >= riseThresh) return true;
-                if (settings.rapid_fall_enabled !== false && diff <= -fallThresh) return true;
+                if (settings.rapid_rise_enabled !== false && diff >= riseThresh) alertType = 'rapid_rise';
+                else if (settings.rapid_fall_enabled !== false && diff <= -fallThresh) alertType = 'rapid_fall';
             }
         }
     }
-    return false;
+
+    if (!alertType) return none;
+
+    const messages = {
+        low: `Hey ${userName}, your blood sugar is low. Current reading is ${valueStr}. Please check your glucose.`,
+        high: `Hey ${userName}, your blood sugar is high. Current reading is ${valueStr}. Please check your glucose.`,
+        rapid_rise: `Hey ${userName}, your blood sugar is rising quickly. Please check your glucose.`,
+        rapid_fall: `Hey ${userName}, your blood sugar is falling quickly. Please check your glucose.`,
+    };
+
+    return {
+        alert: true,
+        alert_type: alertType,
+        alert_message: messages[alertType] || `Hey ${userName}, glucose alert. Please check your glucose.`,
+    };
 }
 
 let pushService = null;
@@ -58,17 +81,19 @@ const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
-// API: Readings - adds alert:true to latest reading when it crosses thresholds (for native app)
+// API: Readings - adds alert, alert_type, alert_message to latest reading when threshold crossed (for native app TTS)
 app.get('/api/readings', (req, res) => {
     const limit = parseInt(req.query.limit) || 50;
     const readings = storage.getReadings(limit);
     const settings = storage.getSettings();
-    const alert = shouldAlertForLatestReading(readings, settings);
+    const { alert, alert_type, alert_message } = getAlertForLatestReading(readings, settings);
 
-    const enriched = readings.map((r, i) => ({
-        ...r,
-        alert: i === 0 ? alert : false
-    }));
+    const enriched = readings.map((r, i) => {
+        if (i === 0) {
+            return { ...r, alert, alert_type, alert_message: alert ? alert_message : undefined };
+        }
+        return { ...r, alert: false };
+    });
 
     res.json(enriched);
 });
