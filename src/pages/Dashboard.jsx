@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { api } from '@/api/localApi';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -73,11 +74,20 @@ export default function Dashboard() {
         return () => window.removeEventListener('bgg-data-update', onBggDataUpdate);
     }, [queryClient]);
 
-    const { data: readings = [], isLoading, refetch } = useQuery({
+    const { data: readings = [], isLoading, isFetching, dataUpdatedAt, refetch } = useQuery({
         queryKey: ['bgReadings'],
         queryFn: () => api.getReadings(50),
-        refetchInterval: 300000,
+        refetchInterval: false,
     });
+
+    const isRefreshingData = isRefreshing || (isFetching && readings.length > 0);
+
+    // On native: refetch when Dashboard mounts (catches cold start - app opened from closed)
+    useEffect(() => {
+        if (Capacitor.getPlatform() !== 'web') {
+            refetch();
+        }
+    }, [refetch]);
 
     const { data: settings } = useQuery({
         queryKey: ['alertSettings'],
@@ -147,14 +157,28 @@ export default function Dashboard() {
                             </span>
                         </div>
                     </div>
-                    <Button 
-                        onClick={handleRefresh}
-                        disabled={isRefreshing}
-                        className="bg-blue-600 hover:bg-blue-700 self-start sm:self-center"
-                    >
-                        <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                        Refresh
-                    </Button>
+                    <div className="flex items-center gap-2 self-start sm:self-center">
+                        {import.meta.env.DEV && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => queryClient.invalidateQueries({ queryKey: ['bgReadings'] })}
+                                disabled={isRefreshingData}
+                                className="text-xs"
+                                title="Simulate app resume refresh"
+                            >
+                                Test refresh
+                            </Button>
+                        )}
+                        <Button 
+                            onClick={handleRefresh}
+                            disabled={isRefreshing}
+                            className="bg-blue-600 hover:bg-blue-700"
+                        >
+                            <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshingData ? 'animate-spin' : ''}`} />
+                            Refresh
+                        </Button>
+                    </div>
                 </div>
 
                 {refreshError && (
@@ -266,6 +290,11 @@ export default function Dashboard() {
                                 </div>
                             ))}
                         </div>
+                        {dataUpdatedAt > 0 && (
+                            <p className="text-xs text-gray-500 dark:text-slate-400 mt-3 pt-3 border-t border-gray-200 dark:border-slate-700">
+                                Updated {getTimeSince(dataUpdatedAt)}
+                            </p>
+                        )}
                     </CardContent>
                 </Card>
             </div>

@@ -1,8 +1,11 @@
+import { useEffect } from 'react'
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import AppRefreshListener from '@/components/AppRefreshListener'
+import { Capacitor } from '@capacitor/core'
+import { registerPlugin } from '@capacitor/core'
 // DISABLED: JS alerts - native BackgroundService should be the only source of alerts
 // import AlertAudioMonitor from '@/components/AlertAudioMonitor'
 // import BackgroundFetchListener from '@/components/BackgroundFetchListener'
@@ -18,7 +21,15 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
   : <>{children}</>;
 
+const MyUiReadyPlugin = registerPlugin('MyUiReadyPlugin');
+
 function App() {
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== 'web') {
+      MyUiReadyPlugin?.uiReady?.().catch(() => {});
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClientInstance}>
       <AppRefreshListener />

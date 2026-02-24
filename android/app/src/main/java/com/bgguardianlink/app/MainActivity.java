@@ -60,6 +60,7 @@ public class MainActivity extends BridgeActivity {
             dispatchDataToWebView(jsonData);
         }
         pendingDataUpdates.clear();
+        dispatchAppResume();
     }
 
     private void dispatchDataToWebView(String jsonData) {
@@ -67,6 +68,16 @@ public class MainActivity extends BridgeActivity {
         webView.post(() -> {
             String script = "window.dispatchEvent(new CustomEvent('bgg-data-update', { detail: " + JSONObject.quote(jsonData) + " }));";
             webView.evaluateJavascript(script, null);
+        });
+    }
+
+    /** Tell the WebView to refresh when app comes to foreground (bypasses Capacitor App plugin timing). */
+    private void dispatchAppResume() {
+        if (!isUiReady) return;
+        final WebView webView = getBridge().getWebView();
+        if (webView == null) return;
+        webView.post(() -> {
+            webView.evaluateJavascript("window.dispatchEvent(new CustomEvent('app-resume'));", null);
         });
     }
 
@@ -117,6 +128,7 @@ public class MainActivity extends BridgeActivity {
         } else {
             registerReceiver(dataUpdateReceiver, new IntentFilter(BackgroundService.ACTION_DATA_UPDATE));
         }
+        dispatchAppResume();
     }
 
     @Override
