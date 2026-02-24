@@ -59,9 +59,9 @@ export default function Settings() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4 md:p-6 overflow-x-hidden">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 md:p-6 overflow-x-hidden transition-colors duration-200">
             <div className="max-w-4xl mx-auto space-y-6 min-w-0">
-                <h1 className="text-3xl font-bold text-gray-800">Alert Settings</h1>
+                <h1 className="text-3xl font-bold text-gray-800 dark:text-slate-100">Alert Settings</h1>
 
                 <Card>
                     <CardHeader>
@@ -136,10 +136,10 @@ export default function Settings() {
                             { id: 'rapid_fall', key: 'rapid_fall_enabled', label: 'Rapid Fall Alert', desc: 'Alert when BG drops quickly' },
                             { id: 'stale_data', key: 'stale_data_enabled', label: 'Stale Data Alert', desc: 'Alert when no reading for 20+ minutes' }
                         ].map(({ id, key, label, desc }) => (
-                            <div key={id} className="flex items-center justify-between gap-4 p-4 bg-gray-50 rounded-lg min-w-0">
+                            <div key={id} className="flex items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-slate-800 rounded-lg min-w-0 transition-colors duration-200">
                                 <div className="min-w-0 flex-1">
                                     <Label htmlFor={id} className="font-medium">{label}</Label>
-                                    <p className="text-sm text-gray-500 break-words">{desc}</p>
+                                    <p className="text-sm text-gray-500 dark:text-slate-400 break-words">{desc}</p>
                                 </div>
                                 <Switch
                                     id={id}
@@ -171,7 +171,7 @@ export default function Settings() {
                                     onValueChange={([v]) => setFormData({ ...formData, alert_volume: v ?? 1 })}
                                     className="flex-1"
                                 />
-                                <span className="text-sm text-gray-600 w-12">
+                                <span className="text-sm text-gray-600 dark:text-slate-400 w-12">
                                     {Math.round((formData.alert_volume ?? 1) * 100)}%
                                 </span>
                             </div>
@@ -186,10 +186,10 @@ export default function Settings() {
                                 className="min-w-0"
                             />
                         </div>
-                        <div className="flex items-center justify-between gap-4 p-4 bg-gray-50 rounded-lg min-w-0">
+                        <div className="flex items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-slate-800 rounded-lg min-w-0 transition-colors duration-200">
                             <div className="min-w-0 flex-1">
                                 <Label htmlFor="audio_alerts" className="font-medium">Enable audio alerts</Label>
-                                <p className="text-sm text-gray-500 mt-0.5 break-words">Beeps + spoken warning on this device</p>
+                                <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5 break-words">Beeps + spoken warning on this device</p>
                             </div>
                             <Switch
                                 id="audio_alerts"
@@ -214,7 +214,7 @@ export default function Settings() {
                                 <Volume2 className="w-4 h-4 mr-2 shrink-0" />
                                 <span className="break-words">Test alert (tap to unlock audio on mobile)</span>
                             </Button>
-                            <p className="text-xs text-gray-500 break-words">
+                            <p className="text-xs text-gray-500 dark:text-slate-400 break-words">
                                 On mobile, tap Test alert once to allow audio. Keep the app open in the foreground for alerts.
                             </p>
                         </div>
@@ -223,8 +223,8 @@ export default function Settings() {
 
                 <MobileNotificationCard />
 
-                <p className="text-sm text-gray-600">
-                    Support: <a href="mailto:odesdave30@gmail.com" className="text-blue-600 hover:underline">odesdave30@gmail.com</a>
+                <p className="text-sm text-gray-600 dark:text-slate-400">
+                    Support: <a href="mailto:odesdave30@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline">odesdave30@gmail.com</a>
                 </p>
 
                 <Button 

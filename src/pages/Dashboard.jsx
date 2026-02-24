@@ -31,13 +31,13 @@ const getBGColor = (mgdlValue, settings) => {
 };
 
 const getBGBackground = (mgdlValue, settings) => {
-    if (!settings) return 'bg-gray-50';
+    if (!settings) return 'bg-gray-50 dark:bg-slate-800';
     const displayValue = (settings?.bg_unit ?? 'mmol') === 'mmol' ? toMmol(mgdlValue) : mgdlValue;
     const low = settings.low_threshold ?? ((settings?.bg_unit ?? 'mmol') === 'mmol' ? 3.9 : 70);
     const high = settings.high_threshold ?? ((settings?.bg_unit ?? 'mmol') === 'mmol' ? 10 : 180);
-    if (displayValue < low) return 'bg-red-50';
-    if (displayValue > high) return 'bg-orange-50';
-    return 'bg-green-50';
+    if (displayValue < low) return 'bg-red-50 dark:bg-red-900/20';
+    if (displayValue > high) return 'bg-orange-50 dark:bg-orange-900/20';
+    return 'bg-green-50 dark:bg-green-900/20';
 };
 
 const formatBG = (mgdlValue, settings) => {
@@ -101,22 +101,22 @@ export default function Dashboard() {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
+            <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">
                 <div className="text-center">
-                    <Activity className="w-12 h-12 text-blue-500 animate-pulse mx-auto mb-4" />
-                    <p className="text-gray-500">Loading BG data...</p>
+                    <Activity className="w-12 h-12 text-blue-500 dark:text-blue-400 animate-pulse mx-auto mb-4" />
+                    <p className="text-gray-500 dark:text-slate-400">Loading BG data...</p>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4 md:p-6">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 md:p-6 transition-colors duration-200">
             <div className="max-w-6xl mx-auto space-y-6">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-800">BG Monitor</h1>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-600">
+                        <h1 className="text-3xl font-bold text-gray-800 dark:text-slate-100">BG Monitor</h1>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-gray-600 dark:text-slate-400">
                             {userName && (
                                 <span>Welcome, {userName}</span>
                             )}
@@ -136,15 +136,15 @@ export default function Dashboard() {
                 </div>
 
                 {refreshError && (
-                    <div className="p-4 rounded-lg bg-red-50 border border-red-200 text-red-800">
+                    <div className="p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200">
                         <p className="font-medium">Refresh failed</p>
                         <p className="text-sm mt-1">{refreshError}</p>
                     </div>
                 )}
 
                 {latestReading ? (
-                    <Card className={`${getBGBackground(latestReading.glucose_value, alertSettings)} border-2`}>
-                        <CardContent className="p-8">
+                    <Card className={`${getBGBackground(latestReading.glucose_value, alertSettings)} border-2 dark:border-slate-700 transition-all duration-200`}>
+                        <CardContent className="p-10">
                             <div className="flex flex-col items-center justify-center space-y-4">
                                 <div className="flex items-center gap-6">
                                     <div className={`text-7xl md:text-9xl font-bold ${getBGColor(latestReading.glucose_value, alertSettings)}`}>
@@ -153,7 +153,7 @@ export default function Dashboard() {
                                     {getTrendIcon(latestReading.trend)}
                                 </div>
                                 <div className="text-center space-y-2">
-                                    <p className="text-2xl text-gray-600">{getUnit(alertSettings)}</p>
+                                    <p className="text-2xl text-gray-600 dark:text-slate-400">{getUnit(alertSettings)}</p>
                                     <p className={`text-lg font-medium ${isStale ? 'text-red-600' : 'text-gray-500'}`}>
                                         <Clock className="w-4 h-4 inline mr-1" />
                                         {getTimeSince(latestReading.timestamp)}
@@ -167,8 +167,8 @@ export default function Dashboard() {
                     </Card>
                 ) : (
                     <Card>
-                        <CardContent className="p-8 text-center">
-                            <p className="text-gray-500">No BG readings yet. Set up CareLink or add manually.</p>
+                        <CardContent className="p-10 text-center">
+                            <p className="text-gray-500 dark:text-slate-400">No BG readings yet. Set up CareLink or add manually.</p>
                         </CardContent>
                     </Card>
                 )}
@@ -231,14 +231,14 @@ export default function Dashboard() {
                     <CardContent>
                         <div className="space-y-2">
                             {readings.slice(0, 10).map((reading) => (
-                                <div key={reading.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <div key={reading.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-slate-800 rounded-lg transition-colors duration-200">
                                     <div className="flex items-center gap-3">
                                         {getTrendIcon(reading.trend)}
                                         <span className={`text-2xl font-bold ${getBGColor(reading.glucose_value, alertSettings)}`}>
                                             {formatBG(reading.glucose_value, alertSettings)}
                                         </span>
                                     </div>
-                                    <span className="text-gray-500">
+                                    <span className="text-gray-500 dark:text-slate-400">
                                         {format(new Date(reading.timestamp), 'HH:mm dd/MM')}
                                     </span>
                                 </div>

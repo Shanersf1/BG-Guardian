@@ -79,35 +79,35 @@ export default function TimeInRangeCard() {
                     <Target className="w-5 h-5" />
                     Time in Range
                 </CardTitle>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
                     Target: {tir.low}–{tir.high} {tir.unit} (Goal: {TIR_GOAL}%)
                 </p>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-4 rounded-xl bg-green-50 border border-green-200/50">
-                        <p className="text-3xl font-bold text-green-600">
+                    <div className="text-center p-4 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-200/50 dark:border-green-800/50">
+                        <p className="text-3xl font-bold text-green-600 dark:text-green-400">
                             {tir.today.pct ?? '—'}%
                         </p>
-                        <p className="text-sm text-gray-600 mt-1">Today</p>
-                        <p className="text-xs text-gray-500">{tir.today.total} readings</p>
+                        <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">Today</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-500">{tir.today.total} readings</p>
                     </div>
-                    <div className="text-center p-4 rounded-xl bg-blue-50 border border-blue-200/50">
-                        <p className="text-3xl font-bold text-blue-600">
+                    <div className="text-center p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200/50 dark:border-blue-800/50">
+                        <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                             {tir.week.pct ?? '—'}%
                         </p>
-                        <p className="text-sm text-gray-600 mt-1">This Week</p>
-                        <p className="text-xs text-gray-500">{tir.week.total} readings</p>
+                        <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">This Week</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-500">{tir.week.total} readings</p>
                     </div>
                 </div>
                 <div className="flex items-center justify-center gap-2">
                     {(tir.today.pct ?? 0) >= TIR_GOAL || (tir.week.pct ?? 0) >= TIR_GOAL ? (
-                        <span className="flex items-center gap-1 text-green-600 text-sm font-medium">
+                        <span className="flex items-center gap-1 text-green-600 dark:text-green-400 text-sm font-medium">
                             <TrendingUp className="w-4 h-4" />
                             Meeting goal
                         </span>
                     ) : (
-                        <span className="text-amber-600 text-sm">
+                        <span className="text-amber-600 dark:text-amber-400 text-sm">
                             Aim for {TIR_GOAL}%+ time in range
                         </span>
                     )}
@@ -143,7 +143,7 @@ export default function TimeInRangeCard() {
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
-                <div className="flex gap-4 justify-center text-xs text-gray-500">
+                <div className="flex gap-4 justify-center text-xs text-gray-500 dark:text-slate-400">
                     <span>In range: {tir.today.inRange}/{tir.today.total} today</span>
                     <span>Below: {tir.today.below}</span>
                     <span>Above: {tir.today.above}</span>

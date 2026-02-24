@@ -39,15 +39,15 @@ export default function Connect() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 p-4 md:p-6">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 p-4 md:p-6 transition-colors duration-200">
             <div className="max-w-2xl mx-auto space-y-6">
-                <h1 className="text-3xl font-bold text-gray-800">Connect your CGM</h1>
+                <h1 className="text-3xl font-bold text-gray-800 dark:text-slate-100">Connect your CGM</h1>
 
                 {/* CGM Source Selection */}
                 <Card>
                     <CardHeader>
                         <CardTitle>Choose your CGM system</CardTitle>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
                             Select the glucose monitoring system you use to fetch readings.
                         </p>
                     </CardHeader>
@@ -56,34 +56,34 @@ export default function Connect() {
                             <button
                                 type="button"
                                 onClick={() => handleSelectSource('medtronic')}
-                                className={`p-6 rounded-xl border-2 text-left transition-all ${
+                                className={`p-6 rounded-xl border-2 text-left transition-all duration-200 ${
                                     selectedSource === 'medtronic'
-                                        ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-200'
-                                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800'
+                                        : 'border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-800'
                                 }`}
                             >
                                 <Activity className={`w-10 h-10 mb-3 ${
-                                    selectedSource === 'medtronic' ? 'text-blue-600' : 'text-gray-500'
+                                    selectedSource === 'medtronic' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-slate-400'
                                 }`} />
-                                <h3 className="font-semibold text-lg text-gray-800">Medtronic CareLink</h3>
-                                <p className="text-sm text-gray-600 mt-1">
+                                <h3 className="font-semibold text-lg text-gray-800 dark:text-slate-100">Medtronic CareLink</h3>
+                                <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
                                     MiniMed pumps & sensors via CareLink Connect
                                 </p>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => handleSelectSource('dexcom')}
-                                className={`p-6 rounded-xl border-2 text-left transition-all ${
+                                className={`p-6 rounded-xl border-2 text-left transition-all duration-200 ${
                                     selectedSource === 'dexcom'
-                                        ? 'border-blue-600 bg-blue-50 ring-2 ring-blue-200'
-                                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                        ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800'
+                                        : 'border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500 hover:bg-gray-50 dark:hover:bg-slate-800'
                                 }`}
                             >
                                 <Smartphone className={`w-10 h-10 mb-3 ${
-                                    selectedSource === 'dexcom' ? 'text-blue-600' : 'text-gray-500'
+                                    selectedSource === 'dexcom' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-slate-400'
                                 }`} />
-                                <h3 className="font-semibold text-lg text-gray-800">Dexcom Share</h3>
-                                <p className="text-sm text-gray-600 mt-1">
+                                <h3 className="font-semibold text-lg text-gray-800 dark:text-slate-100">Dexcom Share</h3>
+                                <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
                                     G7/G6/G5/G4 via Dexcom Share
                                 </p>
                             </button>
@@ -170,7 +170,7 @@ function DexcomSetup() {
         <Card>
             <CardHeader>
                 <CardTitle>Dexcom Share Setup</CardTitle>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
                     Use your Dexcom Share credentials (username/email/phone). Enable Share in the Dexcom app and add at least one follower.
                 </p>
             </CardHeader>
@@ -194,7 +194,7 @@ function DexcomSetup() {
                         onChange={(e) => setDexcomData({ ...dexcomData, dexcom_password: e.target.value })}
                     />
                 </div>
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 rounded-lg transition-colors duration-200">
                     <div>
                         <Label htmlFor="dexcom_ous" className="font-medium">Outside United States</Label>
                         <p className="text-xs text-gray-500 mt-0.5">Enable if you use Dexcom outside the US (OUS region)</p>
@@ -205,7 +205,7 @@ function DexcomSetup() {
                         onCheckedChange={(checked) => setDexcomData({ ...dexcomData, dexcom_ous: checked })}
                     />
                 </div>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-slate-400">
                     Uses Dexcom Share API (pure Node.js; no Python required).
                 </p>
                 <div className="flex gap-2">
@@ -230,7 +230,7 @@ function DexcomSetup() {
                 </div>
                 {status && (
                     <div className={`flex items-center gap-2 p-4 rounded-lg ${
-                        status.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                        status.type === 'success' ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
                     }`}>
                         {status.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
                         <p className="font-medium">{status.message}</p>
