@@ -84,23 +84,36 @@ public class BackgroundService extends Service implements TextToSpeech.OnInitLis
                 String jsonData = response.body().string();
                 Log.d("Monitor", "Received data: " + jsonData);
 
-                String ttsMessage = parseAlertMessage(jsonData);
-                if (ttsMessage != null) {
+                AlertPayload payload = parseAlertPayload(jsonData);
+                if (payload != null) {
                     Log.d("Monitor", "Alert condition met. Triggering notification.");
-                    triggerAlert(ttsMessage);
+                    triggerAlert(payload.message, payload.volume);
                 }
             }
         }
     }
 
-    private String parseAlertMessage(String jsonData) {
+    private static class AlertPayload {
+        String message;
+        float volume;
+
+        AlertPayload(String message, float volume) {
+            this.message = message;
+            this.volume = volume;
+        }
+    }
+
+    private AlertPayload parseAlertPayload(String jsonData) {
         try {
             JSONArray arr = new JSONArray(jsonData);
             if (arr.length() > 0) {
                 JSONObject first = arr.getJSONObject(0);
                 if (first.optBoolean("alert", false)) {
                     String msg = first.optString("alert_message", null);
-                    return (msg != null && !msg.isEmpty()) ? msg : "Urgent glucose alert!";
+                    String message = (msg != null && !msg.isEmpty()) ? msg : "Urgent glucose alert!";
+                    double vol = first.optDouble("alert_volume", 1.0);
+                    float volume = (float) Math.max(0.0, Math.min(1.0, vol));
+                    return new AlertPayload(message, volume);
                 }
             }
         } catch (Exception e) {
@@ -109,10 +122,11 @@ public class BackgroundService extends Service implements TextToSpeech.OnInitLis
         return null;
     }
 
-    private void triggerAlert(String message) {
+    private void triggerAlert(String message, float volume) {
         if (tts != null) {
             Bundle params = new Bundle();
             params.putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_ALARM);
+            params.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, volume);
             tts.speak(message, TextToSpeech.QUEUE_FLUSH, params, "BG_ALERT_ID");
         }
 

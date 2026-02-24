@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, Volume2, Settings2, Battery, Bell, Smartphone } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
 import { playAlert } from '@/utils/alertAudio';
 import MobileNotificationCard from '@/components/MobileNotificationCard';
 import { toast } from '@/components/ui/use-toast';
@@ -31,7 +32,8 @@ export default function Settings() {
         stale_data_enabled: true,
         alert_email: '',
         user_name: '',
-        audio_alerts_enabled: false
+        audio_alerts_enabled: false,
+        alert_volume: 1
     });
 
     const { data: settings } = useQuery({
@@ -231,6 +233,23 @@ export default function Settings() {
                         <p className="text-sm text-gray-600 break-words">
                             Plays beeps and voice warnings in your browser when alerts fire. Works on PC and mobile.
                         </p>
+                        <div className="space-y-2 min-w-0">
+                            <Label htmlFor="alert_volume">Alert volume</Label>
+                            <div className="flex items-center gap-4">
+                                <Slider
+                                    id="alert_volume"
+                                    min={0}
+                                    max={1}
+                                    step={0.1}
+                                    value={[typeof formData.alert_volume === 'number' ? formData.alert_volume : 1]}
+                                    onValueChange={([v]) => setFormData({ ...formData, alert_volume: v ?? 1 })}
+                                    className="flex-1"
+                                />
+                                <span className="text-sm text-gray-600 w-12">
+                                    {Math.round((formData.alert_volume ?? 1) * 100)}%
+                                </span>
+                            </div>
+                        </div>
                         <div className="space-y-2 min-w-0">
                             <Label htmlFor="user_name">Your name (for voice greeting)</Label>
                             <Input

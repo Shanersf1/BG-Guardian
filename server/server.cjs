@@ -88,9 +88,17 @@ app.get('/api/readings', (req, res) => {
     const settings = storage.getSettings();
     const { alert, alert_type, alert_message } = getAlertForLatestReading(readings, settings);
 
+    const alertVolume = Math.max(0, Math.min(1, Number(settings?.alert_volume) || 1));
+
     const enriched = readings.map((r, i) => {
         if (i === 0) {
-            return { ...r, alert, alert_type, alert_message: alert ? alert_message : undefined };
+            return {
+                ...r,
+                alert,
+                alert_type: alert ? alert_type : undefined,
+                alert_message: alert ? alert_message : undefined,
+                alert_volume: alert ? alertVolume : undefined
+            };
         }
         return { ...r, alert: false };
     });
@@ -133,7 +141,8 @@ app.get('/api/settings', (req, res) => {
         stale_data_enabled: true,
         alert_email: '',
         user_name: '',
-        audio_alerts_enabled: false
+        audio_alerts_enabled: false,
+        alert_volume: 1
     });
 });
 
