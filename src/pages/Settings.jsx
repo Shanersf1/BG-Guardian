@@ -7,15 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, Volume2, Settings2, Battery, Bell, Smartphone } from 'lucide-react';
+import { Save, Volume2 } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { playAlert } from '@/utils/alertAudio';
 import MobileNotificationCard from '@/components/MobileNotificationCard';
 import { toast } from '@/components/ui/use-toast';
-import { Capacitor } from '@capacitor/core';
-import { registerPlugin } from '@capacitor/core';
-
-const UrgentNotification = registerPlugin('UrgentNotification');
 
 export default function Settings() {
     const queryClient = useQueryClient();
@@ -155,76 +151,6 @@ export default function Settings() {
                     </CardContent>
                 </Card>
 
-                {Capacitor.getPlatform() === 'android' && (
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Settings2 className="w-5 h-5" />
-                                Alert Permissions (Android)
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <p className="text-sm text-gray-600">
-                                If alerts don&apos;t wake your phone or show on the lock screen, tap these to open the system settings and enable each permission.
-                            </p>
-                            <div className="space-y-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="w-full justify-start"
-                                    onClick={async () => {
-                                        try {
-                                            await UrgentNotification.openExactAlarmSettings();
-                                        } catch (e) {
-                                            toast({ title: 'Could not open', description: e?.message, variant: 'destructive' });
-                                        }
-                                    }}
-                                >
-                                    <Bell className="w-4 h-4 mr-2" />
-                                    Open Exact Alarm settings
-                                </Button>
-                                <p className="text-xs text-gray-500 pl-1">Enable &quot;Allow setting alarms and reminders&quot;</p>
-                            </div>
-                            <div className="space-y-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="w-full justify-start"
-                                    onClick={async () => {
-                                        try {
-                                            await UrgentNotification.openFullScreenIntentSettings();
-                                        } catch (e) {
-                                            toast({ title: 'Could not open', description: e?.message, variant: 'destructive' });
-                                        }
-                                    }}
-                                >
-                                    <Smartphone className="w-4 h-4 mr-2" />
-                                    Open Full-Screen Intent settings
-                                </Button>
-                                <p className="text-xs text-gray-500 pl-1">Enable &quot;Allow full screen notifications&quot;</p>
-                            </div>
-                            <div className="space-y-2">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="w-full justify-start"
-                                    onClick={async () => {
-                                        try {
-                                            await UrgentNotification.openBatteryOptimizationSettings();
-                                        } catch (e) {
-                                            toast({ title: 'Could not open', description: e?.message, variant: 'destructive' });
-                                        }
-                                    }}
-                                >
-                                    <Battery className="w-4 h-4 mr-2" />
-                                    Open Battery Optimization settings
-                                </Button>
-                                <p className="text-xs text-gray-500 pl-1">Set to &quot;Unrestricted&quot; or &quot;Don&apos;t optimize&quot;</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                )}
-
                 <Card>
                     <CardHeader>
                         <CardTitle>Voice Alerts</CardTitle>
@@ -276,7 +202,14 @@ export default function Settings() {
                                 type="button"
                                 variant="outline"
                                 className="w-full justify-start text-left whitespace-normal h-auto py-3 px-4"
-                                onClick={() => playAlert('low', formData.user_name || 'User', 3.5, formData.alert_volume ?? 1)}
+                                onClick={() => {
+                                const vol = formData.alert_volume ?? 1;
+                                if (vol <= 0) {
+                                    toast({ title: 'Volume is 0%', description: 'Move the volume slider up to hear the test.', variant: 'destructive' });
+                                    return;
+                                }
+                                playAlert('low', formData.user_name || 'User', 3.5, vol);
+                            }}
                             >
                                 <Volume2 className="w-4 h-4 mr-2 shrink-0" />
                                 <span className="break-words">Test alert (tap to unlock audio on mobile)</span>

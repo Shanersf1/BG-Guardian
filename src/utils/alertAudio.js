@@ -70,14 +70,28 @@ export async function speakAlert(message, volume = 1) {
   try {
     if (!message?.trim()) return;
     const vol = Math.max(0, Math.min(1, Number(volume) ?? 1));
-    await TextToSpeech.speak({
-      text: message,
-      lang: 'en-GB',
-      rate: 1.0,
-      pitch: 1.0,
-      volume: vol,
-      category: 'ambient',
-    });
+
+    try {
+      await TextToSpeech.speak({
+        text: message,
+        lang: 'en-GB',
+        rate: 1.0,
+        pitch: 1.0,
+        volume: vol,
+        category: 'ambient',
+      });
+    } catch (e) {
+      console.warn('[AlertAudio] Capacitor TTS failed, using speechSynthesis:', e?.message);
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(message);
+        u.lang = 'en-GB';
+        u.rate = 1;
+        u.pitch = 1;
+        u.volume = vol;
+        window.speechSynthesis.speak(u);
+      }
+    }
   } catch (e) {
     console.warn('[AlertAudio] TTS failed:', e);
   }
