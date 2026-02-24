@@ -29,8 +29,14 @@ export default function BackgroundFetchListener() {
       console.log('Background fetch event received!');
       showMonitoringToast();
       try {
-        await api.fetchCareLink();
+        const newReadings = await api.fetchCareLink();
+
+        // Write new data into React Query cache
+        queryClient.setQueryData(['bgReadings'], newReadings);
+
+        // Force UI to re-render
         queryClient.invalidateQueries({ queryKey: ['bgReadings'] });
+
       } catch (e) {
         console.warn('[BackgroundFetch] Fetch failed:', e?.message);
       }
