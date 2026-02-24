@@ -26,7 +26,10 @@ const MyUiReadyPlugin = registerPlugin('MyUiReadyPlugin');
 function App() {
   useEffect(() => {
     if (Capacitor.getPlatform() !== 'web') {
-      MyUiReadyPlugin?.uiReady?.().catch(() => {});
+      const t = setTimeout(() => {
+        MyUiReadyPlugin?.uiReady?.().catch(() => {});
+      }, 500);
+      return () => clearTimeout(t);
     }
   }, []);
 
