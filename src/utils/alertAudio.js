@@ -17,9 +17,10 @@ function _log(location, message, data, hypothesisId) {
 // #endregion
 
 /**
- * Play short beep using Web Audio API (no external files needed)
+ * Play short beep using Web Audio API (no external files needed).
+ * volume 0-1 scales the beep loudness (default 1).
  */
-export function playBeeps(count = 3, frequency = 880, durationMs = 150) {
+export function playBeeps(count = 3, frequency = 880, durationMs = 150, volume = 1) {
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     // #region agent log
@@ -28,6 +29,8 @@ export function playBeeps(count = 3, frequency = 880, durationMs = 150) {
     if (!AudioContext) return;
 
     const ctx = new AudioContext();
+    const vol = Math.max(0, Math.min(1, Number(volume) ?? 1));
+    const gainLevel = 0.2 * vol;
     // #region agent log
     _log('alertAudio.js:playBeeps:ctx', 'AudioContext created', { state: ctx.state, baseLatency: ctx.baseLatency }, 'B');
     // #endregion
@@ -39,7 +42,7 @@ export function playBeeps(count = 3, frequency = 880, durationMs = 150) {
       gain.connect(ctx.destination);
       osc.frequency.value = frequency;
       osc.type = 'sine';
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.setValueAtTime(gainLevel || 0.01, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + durationMs / 1000);
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + durationMs / 1000);
@@ -150,6 +153,7 @@ export async function playAlert(alertType, userName = 'User', value = null, volu
     ? MESSAGES[alertType](name, value)
     : `Hey ${name}, glucose alert. Please check your glucose.`;
 
-  playBeeps(3);
-  setTimeout(() => speakAlert(msg, volume ?? 1), 900);
+  const vol = Math.max(0, Math.min(1, Number(volume) ?? 1));
+  playBeeps(3, 880, 150, vol);
+  setTimeout(() => speakAlert(msg, vol), 900);
 }
