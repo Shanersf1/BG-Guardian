@@ -72,7 +72,7 @@ public class BackgroundService extends Service implements TextToSpeech.OnInitLis
 
     private void checkServerForUpdates() throws Exception {
         Request request = new Request.Builder()
-                .url("https://bg-guardian-production.up.railway.app:8080/api/readings")
+                .url("https://bg-guardian-production.up.railway.app/api/readings")
                 .build();
 
         try (Response response = client.newCall(request).execute()) {

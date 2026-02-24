@@ -9,6 +9,14 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Guard for Capacitor race: native may call triggerEvent before @capacitor/core loads.
+      (function() {
+        if (typeof window === 'undefined') return;
+        window.Capacitor = window.Capacitor || {};
+        window.Capacitor.triggerEvent = window.Capacitor.triggerEvent || function() {};
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
