@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
 
 const refetchReadings = (queryClient) => {
@@ -43,10 +42,12 @@ export default function AppRefreshListener() {
 
     window.addEventListener('app-resume', onAppResume);
 
-    let capHandle = null;
-    if (Capacitor.getPlatform() === 'web') {
-      App.addListener('resume', onAppResume).then((h) => { capHandle = h; });
-    }
+    let resumeHandle = null;
+    let stateHandle = null;
+    App.addListener('resume', onAppResume).then((h) => { resumeHandle = h; });
+    App.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) refetchReadings(queryClient);
+    }).then((h) => { stateHandle = h; });
 
     const fiveMinInterval = setInterval(() => {
       refetchReadings(queryClient);
@@ -55,7 +56,8 @@ export default function AppRefreshListener() {
     return () => {
       window.removeEventListener('bgg-data-update', onBggDataUpdate);
       window.removeEventListener('app-resume', onAppResume);
-      if (capHandle) capHandle.remove();
+      if (resumeHandle) resumeHandle.remove();
+      if (stateHandle) stateHandle.remove();
       clearInterval(fiveMinInterval);
     };
   }, [queryClient]);

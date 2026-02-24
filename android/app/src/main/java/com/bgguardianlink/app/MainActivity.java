@@ -1,5 +1,6 @@
 package com.bgguardianlink.app;
 
+import androidx.core.content.ContextCompat;
 import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -119,17 +120,27 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
+
+
     @Override
     public void onResume() {
         super.onResume();
         checkAndRequestPermissions();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(dataUpdateReceiver, new IntentFilter(BackgroundService.ACTION_DATA_UPDATE), RECEIVER_NOT_EXPORTED);
-        } else {
-            registerReceiver(dataUpdateReceiver, new IntentFilter(BackgroundService.ACTION_DATA_UPDATE));
-        }
+
+        IntentFilter filter = new IntentFilter(BackgroundService.ACTION_DATA_UPDATE);
+
+        // Use ContextCompat.registerReceiver with an explicit flag
+        ContextCompat.registerReceiver(
+                this,
+                dataUpdateReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+        );
+
         dispatchAppResume();
     }
+
+
 
     @Override
     public void onPause() {
