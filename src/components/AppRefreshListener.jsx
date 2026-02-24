@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 const refetchReadings = (queryClient) => {
-  queryClient.invalidateQueries({ queryKey: ['bgReadings'] });
+  queryClient.refetchQueries({ queryKey: ['bgReadings'] });
 };
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
@@ -28,11 +28,11 @@ export default function AppRefreshListener() {
           queryClient.setQueryData(['bgReadings'], newData);
           console.log('[AppRefreshListener] bgg-data-update: received', newData.length, 'readings');
         } else {
-          queryClient.invalidateQueries({ queryKey: ['bgReadings'] });
+          queryClient.refetchQueries({ queryKey: ['bgReadings'] });
         }
       } catch (err) {
         console.warn('[AppRefreshListener] bgg-data-update parse failed, refetching:', err);
-        queryClient.invalidateQueries({ queryKey: ['bgReadings'] });
+        queryClient.refetchQueries({ queryKey: ['bgReadings'] });
       }
     };
 

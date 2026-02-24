@@ -9,7 +9,9 @@ import '@/index.css'
 // When the app resumes from background/lock, events fire before components load.
 // Must run at startup so listeners exist when Capacitor fires resume.
 const onResume = () => {
-  queryClientInstance.invalidateQueries({ queryKey: ['bgReadings'] })
+  console.log('[main] onResume fired - refetching bgReadings')
+  // refetchQueries forces immediate network request (invalidateQueries only marks stale)
+  queryClientInstance.refetchQueries({ queryKey: ['bgReadings'] })
 }
 CapacitorApp.addListener('resume', onResume)
 CapacitorApp.addListener('appStateChange', ({ isActive }) => {

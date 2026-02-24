@@ -18,12 +18,12 @@ describe('AppRefreshListener', () => {
     vi.clearAllMocks();
   });
 
-  it('listens for app-resume window event and invalidates bgReadings', () => {
+  it('listens for app-resume window event and refetches bgReadings', () => {
     const { queryClient } = renderWithClient();
-    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    const refetchSpy = vi.spyOn(queryClient, 'refetchQueries');
 
     window.dispatchEvent(new CustomEvent('app-resume'));
-    expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['bgReadings'] });
+    expect(refetchSpy).toHaveBeenCalledWith({ queryKey: ['bgReadings'] });
   });
 
   it('listens for bgg-data-update and sets query data when payload is array', () => {
