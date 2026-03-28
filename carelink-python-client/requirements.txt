@@ -4,7 +4,7 @@ Brotli==1.1.0
 certifi==2025.8.3
 cffi==2.0.0
 charset-normalizer==3.4.3
-cryptography==42.0.8
+cryptography==46.0.6
 curlify==2.2.1
 h11==0.16.0
 h2==4.3.0
